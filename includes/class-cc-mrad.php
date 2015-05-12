@@ -172,6 +172,10 @@ class CC_MRAD {
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/class-cc-mrad-public.php';
 
 		/**
+		 * The method for actually saving the BP Doc, based closely on BP Docs, and maybe replaceable later.
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/bpdocs-save-methods.php';
+		/**
 		 * The templates file.
 		 */
 		// require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/partials/cc-mrad-public-display.php';
@@ -208,10 +212,9 @@ class CC_MRAD {
 	 */
 	private function define_admin_hooks() {
 
-		// $plugin_admin = new CC_Group_Pages_Admin( $this->get_plugin_name(), $this->get_version() );
-
-		// add_action( 'wp_enqueue_scripts', array( $plugin_admin, 'enqueue_styles') );
-		// add_action( 'wp_enqueue_scripts', array( $plugin_admin, 'enqueue_scripts') );
+		// $plugin_admin = new CC_MRAD_Admin( $this->get_plugin_name(), $this->get_version() );
+		// add_action( 'admin_menu', array( $plugin_admin, 'setup_menus' ) );
+		// add_action( 'admin_menu', array( $plugin_admin, 'setup_settings' ) );
 
 	}
 
@@ -228,9 +231,11 @@ class CC_MRAD {
 		add_filter( 'bp_init', array( $cpt_tax_class, 'register_taxonomy') );
 
 		$plugin_public = new CC_MRAD_Public( $this->get_plugin_name(), $this->get_version() );
+		add_filter( 'xmlrpc_methods', array( $plugin_public, 'filter_xmlrpc_methods' ) );
+
 		// add our callback to both ajax actions.
-		// add_action( "wp_ajax_ccgp_get_page_details", array( $plugin_public, "ccgp_ajax_retrieve_page_details" ) );
-		// add_action( "wp_ajax_nopriv_ccgp_get_page_details", array( $plugin_public, "ccgp_ajax_retrieve_page_details" ) );
+		// add_action( "wp_ajax_ccgp_get_page_details", array( $plugin_public, "ajax_update_item" ) );
+		// add_action( "wp_ajax_nopriv_ccgp_get_page_details", array( $plugin_public, "ajax_update_item" ) );
 		// add_action( "wp_ajax_ccgp_get_page_order", array( $plugin_public, "ccgp_ajax_retrieve_page_order" ) );
 		// add_action( "wp_ajax_nopriv_ccgp_get_page_order", array( $plugin_public, "ccgp_ajax_retrieve_page_order" ) );
 
@@ -292,67 +297,22 @@ class CC_MRAD {
 	 * Retrieve the taxonomy term for "map" in our new taxonomy.
 	 *
 	 * @since     1.0.0
-	 * @return    string    The name of the taxonomy.
+	 * @return    int    The term ID.
 	 */
 	public function get_taxonomy_term_id_map() {
-		$term = get_term_by( 'slug', 'map', get_taxonomy_name() );
+		$term = get_term_by( 'slug', 'map', $this->get_taxonomy_name() );
 		return (int) $term->term_id;
 	}
 
 	/**
-	 * Create or update a doc that represents a saved map.
+	 * Retrieve the taxonomy term for "map" in our new taxonomy.
 	 *
 	 * @since     1.0.0
-	 * @return    int Created/updated post_id or 0 if error.
+	 * @return    int    The term ID.
 	 */
-	public function save_map( $incoming_args = array() ) {
-
-		// We need to provide an array like this:
-		$defaults = array(
-			'doc_id' 		=> 0,
-			'title'			=> '',
-			'content' 		=> '',
-			'permalink'		=> '',
-			'author_id'		=> bp_loggedin_user_id(),
-			'group_id'		=> null,
-			'is_auto'		=> 0,
-			'taxonomies'	=> array(),
-			'settings'		=> array(   'read' => 'creator',
-										'edit' => 'creator',
-										'read_comments' => 'creator',
-										'post_comments' => 'creator',
-										'view_history' => 'creator'
-									),
-			'parent_id'		=> 0,
-			);
-
-
-		// If this was shared with a group:
-		$args[ 'group_id' ] = $group_id;
-		$args[ 'settings' ] = array(    'read' => 'group-members',
-										'edit' => 'creator',
-										'read_comments' => 'group-members',
-										'post_comments' => 'group-members',
-										'view_history' => 'creator'
-									);
-
-		// If this was shared publicly
-		$args[ 'group_id' ] = 0;
-		$args[ 'settings' ] = array(    'read' => 'anyone',
-										'edit' => 'creator',
-										'read_comments' => 'anyone',
-										'post_comments' => 'anyone',
-										'view_history' => 'creator'
-									);
-
-		// If this was created for private use only
-		$args[ 'group_id' ] = 0;
-		// $args[ 'settings' ] is already set for this
-
-		$args['taxonomies'] = array( $this->get_taxonomy_name() => array( 'map' )  );
-
-		$instance = new BP_Docs_Query;
-		return $instance->save( $args );
-
+	public function get_taxonomy_term_id_report() {
+		$term = get_term_by( 'slug', 'report', $this->get_taxonomy_name() );
+		return (int) $term->term_id;
 	}
+
 }
