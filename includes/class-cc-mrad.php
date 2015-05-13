@@ -233,11 +233,22 @@ class CC_MRAD {
 		$plugin_public = new CC_MRAD_Public( $this->get_plugin_name(), $this->get_version() );
 		add_filter( 'xmlrpc_methods', array( $plugin_public, 'filter_xmlrpc_methods' ) );
 
+		// Add the tags filter markup
+		add_filter( 'bp_docs_filter_types', array( $plugin_public, 'add_filter_toggle' ) );
+		add_filter( 'bp_docs_filter_sections', array( $plugin_public, 'filter_markup' ) );
+
+		add_filter( 'bp_docs_tax_query', array( $plugin_public, 'types_query_filter' ), 10, 2 );
+
+		// Prefix the title with "map" or "report" if applicable.
+		add_filter( 'the_title', array( $plugin_public, 'add_doc_type_to_title' ), 10, 2 );
+
 		// add our callback to both ajax actions.
 		// add_action( "wp_ajax_ccgp_get_page_details", array( $plugin_public, "ajax_update_item" ) );
 		// add_action( "wp_ajax_nopriv_ccgp_get_page_details", array( $plugin_public, "ajax_update_item" ) );
 		// add_action( "wp_ajax_ccgp_get_page_order", array( $plugin_public, "ccgp_ajax_retrieve_page_order" ) );
 		// add_action( "wp_ajax_nopriv_ccgp_get_page_order", array( $plugin_public, "ccgp_ajax_retrieve_page_order" ) );
+
+
 
 
 	}

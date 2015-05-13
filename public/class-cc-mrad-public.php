@@ -478,4 +478,105 @@ class CC_MRAD_Public {
 
 	    return 'The post was deleted successfully';
 	}
+
+	/**
+	 * Adds the toggle for the doc types filter links container on the docs loop.
+	 *
+	 * @since 1.0.0
+	 */
+	public function add_filter_toggle( $types ) {
+		$types[] = array(
+			'slug' => 'types',
+			'title' => __( 'Types', $this->plugin_name ),
+			'query_arg' => 'bpd_type',
+		);
+		return $types;
+	}
+
+	/**
+	 * Creates the markup for the doc types filter links on the docs loop.
+	 *
+	 * @since 1.0.0
+	 */
+	public function filter_markup() {
+		$main_class = CC_MRAD::get_instance();
+		$existing_terms = get_terms( $main_class->get_taxonomy_name() );
+		$type_filter = ! empty( $_GET['bpd_type'] );
+		?>
+
+		<div id="docs-filter-section-types" class="docs-filter-section<?php if ( $type_filter ) : ?> docs-filter-section-open<?php endif; ?>">
+			<?php  //var_dump( $existing_terms ); ?>
+			<ul id="types-list" class="no-bullets">
+			<?php if ( ! empty( $existing_terms ) ) : ?>
+				<?php foreach ( $existing_terms as $term ) : ?>
+					<li>
+					<a href="?bpd_type=<?php echo $term->slug; ?>" title="<?php echo esc_html( $term->name ) ?>"><?php echo esc_html( $term->name  ) ?></a>
+					</li>
+
+				<?php endforeach ?>
+			<?php else: ?>
+				<li><?php _e( 'No types to show.', $this->plugin_name )  ?></li>
+			<?php endif; ?>
+			</ul>
+		</div>
+
+		<?php
+	}
+
+	/**
+	 * Modifies the tax_query on the doc loop to account for doc types.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array $terms The item's terms
+	 */
+	public function types_query_filter( $tax_query ) {
+		$main_class = CC_MRAD::get_instance();
+
+		// Check for the existence tag filters in the request URL
+		if ( ! empty( $_REQUEST['bpd_type'] ) ) {
+			// The bpd_tag argument may be comma-separated
+			$types = explode( ',', urldecode( $_REQUEST['bpd_type'] ) );
+
+			// Clean up the input
+			$types = array_map( 'esc_attr', $types );
+
+			$tax_query[] = array(
+				'taxonomy'	=> $main_class->get_taxonomy_name(),
+				'terms'		=> $types,
+				'field'		=> 'slug',
+			);
+
+			if ( ! empty( $_REQUEST['bool'] ) && $_REQUEST['bool'] == 'and' ) {
+				$tax_query['operator'] = 'AND';
+			}
+		}
+
+		return $tax_query;
+	}
+
+	/**
+	 * Prefix the title with the doc type if it's not a regular doc.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array $terms The item's terms
+	 */
+	public function add_doc_type_to_title( $title, $post_id ) {
+
+		if ( bp_docs_is_global_directory() || bp_docs_is_mygroups_directory() ) {
+			$main_class = CC_MRAD::get_instance();
+			$taxonomy = $main_class->get_taxonomy_name();
+			$terms = wp_get_post_terms( $post_id, $taxonomy );
+
+		    if ( ! empty( $terms ) ) {
+		    	$term_name = current( $terms )->name;
+		    	if ( $term_name != 'Doc' ) {
+					$title = $term_name . ': ' . $title;
+				}
+			}
+		}
+
+		return $title;
+	}
 } // End class
