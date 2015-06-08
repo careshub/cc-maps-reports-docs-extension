@@ -480,6 +480,78 @@ class CC_MRAD_Public {
 	    return 'The post was deleted successfully';
 	}
 
+	// Templating
+
+	/**
+	 * Get the location of the template directory.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @uses apply_filters()
+	 * @return string
+	 */
+	public function get_template_directory() {
+		return apply_filters( 'mrad_get_template_directory', plugin_dir_path( __FILE__ ) . 'templates/' );
+	}
+
+	/**
+	 * Add our templates to BuddyPress' template stack.
+	 *
+	 * @since    1.0.0
+	 */
+	public function add_template_stack( $templates ) {
+	    // If we're on a page of our plugin, then we add our path to the
+	    // template path array. This allows bp_get_template_part to work.
+
+	    $is_docs = bp_docs_is_docs_component();
+
+		if ( bp_is_active( 'groups' ) && bp_is_group() && bp_is_current_action( buddypress()->bp_docs->slug ) ) {
+			$is_docs = true;
+		}
+
+		// Only continue if looking at the docs component
+		if ( $is_docs ) {
+	    	$template_directory = $this->get_template_directory();
+	    	// Add the template directory avoiding dupes
+	    	if ( ! in_array( $template_directory, $templates ) ) {
+		        $templates[] = $template_directory;
+			}
+		}
+
+
+        $towrite = PHP_EOL . 'in add_template_stack, templates, filtered: ' . print_r( $templates, TRUE );
+        $towrite .= PHP_EOL . 'is docs?: ' . print_r( $is_docs, TRUE );
+	    $fp = fopen('filter_found_template.txt', 'a');
+        fwrite($fp, $towrite);
+
+	    return $templates;
+	}
+
+	/**
+	 * Add our templates to BuddyPress' template stack.
+	 *
+	 * @since    1.0.0
+	 */
+	public function filter_bp_get_template_part( $templates, $slug, $name ) {
+        $towrite = PHP_EOL . 'in filter_bp_get_template_part, templates, incoming: ' . print_r( $templates, TRUE );
+        $towrite .= PHP_EOL . 'slug: ' . print_r( $slug, TRUE );
+        $towrite .= PHP_EOL . 'name: ' . print_r( $name, TRUE );
+
+        // if ( $slug == 'docs/docs-loop' ) {
+        // 	$templates = array( 'mrad/docs-loop' );
+        // }
+		// $template_directory = $this->get_template_directory();
+  //       $towrite .= PHP_EOL . 'looking for: ' . print_r( $template_directory . 'docs/' . $template, TRUE );
+	    // if ( file_exists( $template_directory . 'docs/' . $template ) ) {
+	    // 	$template_path = $template_directory . 'docs/' . $template;
+	    // }
+        // $towrite .= PHP_EOL . 'template, filtered: ' . print_r( $template_path, TRUE );
+	    $fp = fopen('filter_found_template.txt', 'a');
+        fwrite($fp, $towrite);
+
+	    return $templates;
+	}
+
 	/**
 	 * Adds the toggle for the doc types filter links container on the docs loop.
 	 *

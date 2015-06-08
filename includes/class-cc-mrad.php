@@ -176,6 +176,10 @@ class CC_MRAD {
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/bpdocs-save-methods.php';
 		/**
+		 * Random functions.
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/cc-mrad-functions.php';
+		/**
 		 * The templates file.
 		 */
 		// require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/partials/cc-mrad-public-display.php';
@@ -234,8 +238,26 @@ class CC_MRAD {
 
 		$plugin_public = new CC_MRAD_Public( $this->get_plugin_name(), $this->get_version() );
 		add_filter( 'xmlrpc_methods', array( $plugin_public, 'filter_xmlrpc_methods' ) );
+		// Add our templates to BuddyPress' template stack.
+		// Then, any templates that are specified using `bp_buffer_template_part()` in bp-docs will
+		// be overridden by the same tempalte file in our template folder.
+		add_filter( 'bp_get_template_stack', array( $plugin_public, 'add_template_stack'), 10, 1 );
 
-		// Add the tags filter markup
+		// Template tracing. I think our bp_get_template_stack filter will do most of the work.
+		// add_filter( 'bp_docs_locate_template', array( $plugin_public, 'filter_bp_docs_locate_template'), 34, 2 );
+		// add_filter( 'bp_get_template_part', array( $plugin_public, 'filter_bp_get_template_part'), 10, 3 );
+				// add_filter( 'bp_docs_template', array( $plugin_public, 'filter_found_template'), 34, 2 );
+		// add_filter( 'bp_docs_template_include', array( $plugin_public, 'filter_bp_docs_template_include') );
+
+		// The docs_header.php template location is handled via a direct filter rather than through bp_get_template_part().
+		// I don't think we'll need to override it, but leaving here for later.
+		// add_filter( 'bp_docs_header_template', array( $plugin_public, 'filter_bp_docs_header_template' ), 10, 1 );
+
+		// If type is a map or report, we show the map or report with the description below.
+		add_filter( 'bp_docs_get_the_content', array( $plugin_public, 'filter_bp_docs_get_the_content' ) );
+		add_action( 'bp_docs_after_doc_content', array( $plugin_public, 'add_map_widget_injector' ) );
+
+		// Add the "types" filter markup
 		add_filter( 'bp_docs_filter_types', array( $plugin_public, 'add_filter_toggle' ) );
 		add_filter( 'bp_docs_filter_sections', array( $plugin_public, 'filter_markup' ) );
 
@@ -243,6 +265,9 @@ class CC_MRAD {
 
 		// Prefix the title with "map" or "report" if applicable.
 		add_filter( 'the_title', array( $plugin_public, 'add_doc_type_to_title' ), 10, 2 );
+		// Add a submenu to the docs create button
+		add_filter( 'bp_docs_create_button', array( $plugin_public, 'filter_bp_docs_create_button' ), 10, 1 );
+
 		// Add a "Channels" column to the docs loop
 		add_filter( 'bp_docs_loop_additional_th', array( $plugin_public, 'channels_th' ) );
 		add_filter( 'bp_docs_loop_additional_td', array( $plugin_public, 'channels_td' ) );
@@ -255,6 +280,9 @@ class CC_MRAD {
 		// @TODO: Scope these
 		add_action( 'wp_enqueue_scripts', array( $plugin_public, 'enqueue_styles') );
 		add_action( 'wp_enqueue_scripts', array( $plugin_public, 'enqueue_scripts') );
+
+		add_filter( 'bp_docs_get_doc_edit_link', array( $plugin_public, 'filter_bp_docs_get_doc_edit_link') );
+
 
 
 		// add our callback to both ajax actions.
