@@ -61,7 +61,7 @@ class CC_MRAD_Public {
 	 */
 	public function enqueue_styles() {
 
-		// wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/cc-mrad-public.css', array(), $this->version, 'all' );
+		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/cc-mrad-public.css', array(), $this->version, 'all' );
 	}
 
 	/**
@@ -83,7 +83,7 @@ class CC_MRAD_Public {
 		 * class.
 		 */
 
-		// wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/cc-group-pages-public.js', array( 'jquery' ), $this->version, false );
+		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/cc-mrad-public.js', array( 'jquery' ), $this->version, false );
 
 	}
 
@@ -400,6 +400,7 @@ class CC_MRAD_Public {
 			    if ( ! empty( $item['tags'] ) ) {
 			    	wp_set_object_terms( $post_id, $item['tags'], $bp_docs_tag_tax_name );
 			    }
+			    //@TODO: Set the channel, too.
 			}
 
 	  } else {
@@ -490,6 +491,11 @@ class CC_MRAD_Public {
 			'title' => __( 'Types', $this->plugin_name ),
 			'query_arg' => 'bpd_type',
 		);
+		$types[] = array(
+			'slug' => 'channels',
+			'title' => __( 'Channels', $this->plugin_name ),
+			'query_arg' => 'bpd_channel',
+		);
 		return $types;
 	}
 
@@ -500,19 +506,35 @@ class CC_MRAD_Public {
 	 */
 	public function filter_markup() {
 		$main_class = CC_MRAD::get_instance();
-		$existing_terms = get_terms( $main_class->get_taxonomy_name() );
+		$channel_filter = ! empty( $_GET['bpd_channel'] );
+		$categories = get_terms( 'category' );
+
 		$type_filter = ! empty( $_GET['bpd_type'] );
+		$existing_types = get_terms( $main_class->get_taxonomy_name() );
+
+
 		?>
+		<div id="docs-filter-section-channels" class="docs-filter-section<?php if ( $channel_filter ) : ?> docs-filter-section-open<?php endif; ?>">
+			<ul id="channel-list" class="no-bullets">
+			<?php if ( ! empty( $categories ) ) : ?>
+				<?php foreach ( $categories as $cat ) : ?>
+					<li>
+					<a href="?bpd_channel=<?php echo $cat->slug; ?>" title="<?php echo esc_html( $cat->name ) ?>"><?php echo esc_html( $cat->name  ) ?></a>
+					</li>
+				<?php endforeach ?>
+			<?php else: ?>
+				<li><?php _e( 'No channels to show.', $this->plugin_name )  ?></li>
+			<?php endif; ?>
+			</ul>
+		</div>
 
 		<div id="docs-filter-section-types" class="docs-filter-section<?php if ( $type_filter ) : ?> docs-filter-section-open<?php endif; ?>">
-			<?php  //var_dump( $existing_terms ); ?>
 			<ul id="types-list" class="no-bullets">
-			<?php if ( ! empty( $existing_terms ) ) : ?>
-				<?php foreach ( $existing_terms as $term ) : ?>
+			<?php if ( ! empty( $existing_types ) ) : ?>
+				<?php foreach ( $existing_types as $term ) : ?>
 					<li>
 					<a href="?bpd_type=<?php echo $term->slug; ?>" title="<?php echo esc_html( $term->name ) ?>"><?php echo esc_html( $term->name  ) ?></a>
 					</li>
-
 				<?php endforeach ?>
 			<?php else: ?>
 				<li><?php _e( 'No types to show.', $this->plugin_name )  ?></li>
@@ -524,7 +546,7 @@ class CC_MRAD_Public {
 	}
 
 	/**
-	 * Modifies the tax_query on the doc loop to account for doc types.
+	 * Modifies the tax_query on the doc loop to account for doc types & categories.
 	 *
 	 * @since 1.0.0
 	 *
@@ -532,6 +554,7 @@ class CC_MRAD_Public {
 	 */
 	public function types_query_filter( $tax_query ) {
 		$main_class = CC_MRAD::get_instance();
+		$check_operator = false;
 
 		// Check for the existence tag filters in the request URL
 		if ( ! empty( $_REQUEST['bpd_type'] ) ) {
@@ -547,6 +570,26 @@ class CC_MRAD_Public {
 				'field'		=> 'slug',
 			);
 
+			$check_operator = true;
+		}
+
+		if ( ! empty( $_REQUEST['bpd_channel'] ) ) {
+			// The bpd_channel argument may be comma-separated
+			$channels = explode( ',', urldecode( $_REQUEST['bpd_channel'] ) );
+
+			// Clean up the input
+			$types = array_map( 'esc_attr', $types );
+
+			$tax_query[] = array(
+				'taxonomy'	=>'category',
+				'terms'		=> $channels,
+				'field'		=> 'slug',
+			);
+
+			$check_operator = true;
+		}
+
+		if ( $check_operator ) {
 			if ( ! empty( $_REQUEST['bool'] ) && $_REQUEST['bool'] == 'and' ) {
 				$tax_query['operator'] = 'AND';
 			}
@@ -579,4 +622,341 @@ class CC_MRAD_Public {
 
 		return $title;
 	}
+
+	/**
+	 * Add a submenu to the docs create button.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array $button Markup for the create button
+	 */
+	public function filter_bp_docs_create_button( $button ) {
+	    ob_start();
+	    ?>
+	    <div id="bp-create-doc-button-menu" class="bp-create-doc-button-nav-container">
+		    <ul class="nav accessible-menu no-bullets">
+		    <li class="alignright menu-item menu-item-level-0 menu-item-has-children">
+		    	<?php echo $button; ?>
+			    <div id="mrad_create_doc_options_panel" class="sub-nav">
+			    	<ul class="sub-nav-group mrad_create_doc_options_list no-bullets">
+				        <li class="menu-item">
+				        	<a href="<?php bp_docs_create_link(); ?>" title="Create a collaborative document"><span class="collaborationx24 icon"></span>Create a Collaborative Doc</a>
+				        </li>
+					    <li class="menu-item">
+					        <a href="<?php echo mrad_map_create_link_url(); ?>" title="Create a map"><span class="mapx24 icon"></span>Create a Map</a>
+					    </li>
+				        <li class="menu-item">
+					        <a href="<?php echo mrad_report_create_link_url(); ?>" title="Create a report"><span class="reportx24 icon"></span>Create a Report</a>
+					    </li>
+				    </ul>
+			    </div>
+			</li>
+			</ul>
+		</div>
+	    <?php
+		return ob_get_clean();
+
+		// return $button;
+	}
+
+	/**
+	 * Filter the location of the docs header template.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string Location of the template to use.
+	 */
+	public function filter_bp_docs_header_template( $template ) {
+	    // $towrite = PHP_EOL . 'incoming_template' . print_r( $template, TRUE );
+      	$template_directory = $this->get_template_directory();
+	    $template = $template_directory . "docs/docs-header.php";
+
+	    // $towrite .= PHP_EOL . 'filtered_template' . print_r( $template, TRUE );
+	    // $fp = fopen('filter_bp_docs_header_template.txt', 'a');
+	    // fwrite($fp, $towrite);
+	    // fclose($fp);
+
+		return $template;
+	}
+
+	/**
+	 * Filter the doc edit link for a single doc.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string Edit link for the type of doc that it is.
+	 */
+	public function filter_bp_docs_get_doc_edit_link( $link ) {
+
+		// What Doc are we talking about?
+		if ( is_singular( bp_docs_get_post_type_name() ) && $q = get_queried_object() ) {
+			$doc_id = isset( $q->ID ) ? $q->ID : 0;
+		} else if ( get_the_ID() ) {
+			$doc_id = get_the_ID();
+		}
+
+		$main_class = CC_MRAD::get_instance();
+		$terms = wp_get_post_terms( $doc_id, $main_class->get_taxonomy_name() );
+
+		// We're assuming that there's only one "type" associated with a doc.
+		$slug = '';
+		if ( ! empty( $terms ) ) {
+			$slug = current( $terms )->slug;
+		}
+
+		switch ( $slug ) {
+			case 'map':
+				$link = mrad_map_open_link_url( $doc_id );
+				break;
+			case 'report':
+				$link = mrad_report_open_link_url( $doc_id );
+				break;
+			default:
+				// Do nothing.
+				break;
+		}
+
+	    $towrite = PHP_EOL . 'doc id' . print_r( $doc_id, TRUE );
+	    $towrite .= PHP_EOL . 'filtered edit link' . print_r( $link, TRUE );
+	    // $towrite .= PHP_EOL . 'terms' . print_r( $terms, TRUE );
+	    $fp = fopen('filter_bp_docs_get_doc_edit_link.txt', 'a');
+	    fwrite($fp, $towrite);
+	    fclose($fp);
+
+		return $link;
+	}
+
+	/**
+	 * Markup for the Channels <th> on the docs loop
+	 *
+	 * @since 1.0.0
+	 */
+
+	function channels_th() {
+		?>
+
+		<th scope="column" class="channels-cell"><?php _e( 'Channels', $this->plugin_name ); ?></th>
+
+		<?php
+	}
+
+	/**
+	 * Markup for the Channels <td> on the docs loop
+	 *
+	 * @since 1.0.0
+	 */
+	function channels_td() {
+
+		//TODO: maybe add these to the title cell instead?
+
+		$channels = get_the_terms( get_the_ID(), 'category' );
+		$output = array();
+
+		foreach ( (array) $channels as $cat ) {
+			if ( ! empty( $cat->name ) ) {
+				$output[] = '<a href="?bpd_channel=' . $cat->slug . '" title="' . esc_html( $cat->name ) . '">' . esc_html( $cat->name  ) . '</a>';
+			}
+		}
+
+		?>
+
+		<td class="channels-cell">
+			<?php echo implode( ', ', $output ) ?>
+		</td>
+
+		<?php
+	}
+
+	/**
+	 * Markup for the Channels meta box on the docs edit screen
+	 *
+	 * @since 1.0.0
+	 */
+	public function docs_edit_channels_metabox( $doc_id ) {
+		// require_once(ABSPATH . '/wp-admin/includes/template.php');
+		?>
+		<div id="doc-channel" class="doc-meta-box">
+			<div class="toggleable <?php bp_docs_toggleable_open_or_closed_class(); ?>">
+				<p id="channel-toggle-edit" class="toggle-switch">
+					<span class="hide-if-js toggle-link-no-js"><?php _e( 'Channels', $this->plugin_name ); ?></span>
+					<a class="hide-if-no-js toggle-link" id="channel-toggle-link" href="#"><span class="show-pane plus-or-minus"></span><?php _e( 'Channels', $this->plugin_name ); ?></a>
+				</p>
+
+				<div class="toggle-content">
+					<table class="toggle-table" id="toggle-table-channel">
+						<tr>
+							<td class="desc-column">
+								<label for="bp_docs_channel"><?php _e( 'Select the channels that describe your item.', $this->plugin_name ) ?></label>
+							</td>
+
+							<td>
+								<?php
+								//wp_category_checklist( $doc_id );
+								$categories = get_terms( 'category' );
+					            $selected_cats = wp_list_pluck( get_the_terms( $doc_id, 'category' ), 'term_id' );
+					            // var_dump( $selected_cats );
+					            if ( ! empty( $categories ) ) :
+					            ?>
+						            <ul class="no-bullets horizontal">
+										<?php
+										    foreach ( $categories as $category ) {
+								            	$selected_cat = in_array( $category->term_id, $selected_cats) ? true : false;
+											?>
+											<li id="category-<?php echo $category->term_id; ?>"><label class="selectit"><input value="<?php echo $category->term_id; ?>" type="checkbox" name="post_category[]" id="in-category-<?php echo $category->term_id; ?>" <?php checked( $selected_cat ); ?>> <?php echo $category->name; ?></label></li>
+											<?php
+										}
+										?>
+						            </ul>
+					            <?php
+					            endif; //if ( ! empty( $categories ) )
+								?>
+							</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Save channels selected from the front end.
+	 *
+	 * @since 1.0.0
+	 *
+	 */
+
+	public function save_channel_selection( $query ) {
+		// Separate out the terms
+		$terms = ! empty( $_POST['post_category'] ) ? array_map( 'intval', $_POST['post_category'] ) : array();
+
+		if ( ! empty( $terms ) ) {
+			wp_set_post_terms( $query->doc_id, $terms, 'category' );
+		}
+
+	    $towrite = PHP_EOL . '$query: ' . print_r( $query, TRUE );
+	    $towrite .= PHP_EOL . '$_POST[post_category]: ' . print_r( $_POST['post_category'], TRUE );
+	    $towrite .= PHP_EOL . '$terms: ' . print_r( $terms, TRUE );
+	    $fp = fopen('save-doc-channels.txt', 'a');
+	    fwrite($fp, $towrite);
+	    fclose($fp);
+	}
+
+	public function filter_found_template( $template_path, $that ){
+	    $towrite = PHP_EOL . 'in filter_found_template.';
+	    $towrite .= PHP_EOL . '$template_path: ' . print_r( $template_path, TRUE );
+	    $towrite .= PHP_EOL . '$that: ' . print_r( $that, TRUE );
+	    $fp = fopen('filter_found_template.txt', 'a');
+	    fwrite($fp, $towrite);
+	    fclose($fp);
+
+	    return $template_path;
+	}
+
+	public function filter_bp_docs_locate_template( $template_path, $template ) {
+	    $towrite = PHP_EOL . 'in filter_bp_docs_locate_template.';
+	    $towrite .= PHP_EOL . '$template_path: ' . print_r( $template_path, TRUE );
+	    $towrite .= PHP_EOL . '$that: ' . print_r( $that, TRUE );
+	    $fp = fopen('filter_found_template.txt', 'a');
+	    fwrite($fp, $towrite);
+	    fclose($fp);
+
+	    return $template_path;
+	}
+
+	public function filter_bp_docs_template_include( $template ) {
+	    $towrite = PHP_EOL . 'in filter_bp_docs_template_include.';
+	    $towrite .= PHP_EOL . '$template: ' . print_r( $template, TRUE );
+	    $fp = fopen('filter_found_template.txt', 'a');
+	    fwrite($fp, $towrite);
+	    fclose($fp);
+
+	    return $template;
+	}
+
+	public function filter_bp_docs_get_the_content( $content ) {
+		$doc = get_queried_object();
+
+		if ( ! empty( $doc ) ) {
+			$mrad_class = CC_MRAD::get_instance();
+			$terms = wp_get_object_terms( $doc->ID, $mrad_class->get_taxonomy_name() );
+			$item_type = '';
+			$meta_query_key = '';
+
+			if ( ! empty( $terms ) ) {
+				$item_type = current( $terms )->slug;
+				switch ( $item_type ) {
+					case 'map':
+				        // $meta_query_key = 'map_table_ID';
+				        $item_id = get_post_meta( $doc->ID, 'map_table_ID', true );
+				        break;
+				    case 'report':
+					    $meta_query_key = 'report_table_ID';
+					default:
+						$meta_query_key = '';
+						break;
+				}
+			}
+
+			if ( 'map' == $item_type ) {
+				// We add a map widget above the post content.
+				// $widget = '<script  id="map_widget_generator" src="http://maps.communitycommons.org/jscripts/mapWidget.js?mapid='. $item_id . '&style=responsive"></script>';
+				$widget = '<div id="map-widget-container" ></div>';
+				$content = $widget . '<br /> ' . $content;
+
+			} elseif ( 'report' == $item_type ) {
+				# code...
+			}
+
+		}
+
+	    // $towrite = PHP_EOL . 'in filter_bp_docs_get_the_content.';
+	    // $towrite .= PHP_EOL . '$doc object: ' . print_r( $doc, TRUE );
+	    // $towrite .= PHP_EOL . '$terms object: ' . print_r( $terms, TRUE );
+	    // $fp = fopen('bp-docs-templating.txt', 'a');
+	    // fwrite($fp, $towrite);
+	    // fclose($fp);
+		return $content;
+	}
+
+	public function add_map_widget_injector() {
+		$doc_id = get_the_ID();
+		$output = '';
+
+		if ( ! empty( $doc_id ) ) {
+			$mrad_class = CC_MRAD::get_instance();
+			$terms = wp_get_object_terms( $doc_id, $mrad_class->get_taxonomy_name() );
+			$item_type = '';
+			$meta_query_key = '';
+
+			if ( ! empty( $terms ) ) {
+				$item_type = current( $terms )->slug;
+				switch ( $item_type ) {
+					case 'map':
+				        // $meta_query_key = 'map_table_ID';
+				        $item_id = get_post_meta( $doc_id, 'map_table_ID', true );
+				        break;
+				    case 'report':
+					    $meta_query_key = 'report_table_ID';
+					default:
+						$meta_query_key = '';
+						break;
+				}
+			}
+
+			if ( 'map' == $item_type ) {
+				// We add a map widget above the post content.
+				$output = '<script type="text/javascript">
+				var base_map_widget_src = "http://maps.communitycommons.org/jscripts/mapWidget.js?mapid='. $item_id . '&style=responsive";
+				</script>';
+			} elseif ( 'report' == $item_type ) {
+				# code...
+			}
+
+		}
+		if ( ! empty( $output ) ) {
+			echo $output;
+		}
+	}
+
 } // End class

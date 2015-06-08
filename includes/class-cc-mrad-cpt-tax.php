@@ -63,7 +63,7 @@ class CC_MRAD_CPT_Tax {
 	}
 
 	/**
-	 * Creates the group story custom taxonomy.
+	 * Creates the "types" custom taxonomy for bp_docs.
 	 *
 	 * @since    1.0.0
 	 */
@@ -100,9 +100,15 @@ class CC_MRAD_CPT_Tax {
 	        'query_var' => true
 	    );
 
-	    $bp = buddypress();
-
-	    register_taxonomy( $this->taxonomy_name, array( $bp->bp_docs->post_type_name ), $args );
+	    register_taxonomy( $this->taxonomy_name, array( bp_docs_get_post_type_name() ), $args );
 	}
 
+	/**
+	 * Apply the "category" (we call them "channels") taxonomy to bp_docs.
+	 *
+	 * @since    1.0.0
+	 */
+	public function apply_channels_to_bp_docs() {
+		register_taxonomy_for_object_type( 'category', bp_docs_get_post_type_name() );
+	}
 }

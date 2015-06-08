@@ -2,3 +2,56 @@
  * All of the CSS for your public-facing functionality should be
  * included in this file.
  */
+
+
+.bp-create-doc-button-nav-container {
+    float: right;
+}
+
+#buddypress .mrad_create_doc_options_list li {
+    margin: 0;
+}
+.item-list-tabs #bp-docs-all-docs .bp-create-doc-button-nav-container ul {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.bp-create-doc-button-nav-container .accessible-menu .sub-nav {
+    width: 17em;
+}
+
+.bp-create-doc-button-nav-container .accessible-menu .sub-nav .sub-nav-group a {
+    padding: 0 0.6em;
+}
+
+.bp-create-doc-button-nav-container .accessible-menu .sub-nav:after,
+.bp-create-doc-button-nav-container .accessible-menu .sub-nav:before {
+    left: 55%;
+}
+.bp-create-doc-button-nav-container .sub-nav a {
+    display: inline-block;
+    vertical-align: middle;
+}
+.bp-create-doc-button-nav-container .icon {
+    display: inline-block;
+    vertical-align: middle;
+    background-color: #FFF;
+    border-radius: 0;
+    margin-right: .6em;
+}
+
+.doc-content .cc-map-widget img {
+    margin: 0;
+}
+.doc-content .map-widget-data {
+    display: none;
+}
+
+#subnav.item-list-tabs .bp-create-doc-button-nav-container ul {
+    border-bottom: 0;
+}
+
+.ie7 .bp-create-doc-button-nav-container,
+.ie8 .bp-create-doc-button-nav-container {
+    float: right;
+}

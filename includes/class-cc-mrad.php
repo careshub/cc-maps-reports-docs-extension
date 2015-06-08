@@ -229,6 +229,8 @@ class CC_MRAD {
 		// Register the custom taxonomy
 		$cpt_tax_class = new CC_MRAD_CPT_Tax( $this->get_plugin_name(), $this->get_version(), $this->get_taxonomy_name() );
 		add_filter( 'bp_init', array( $cpt_tax_class, 'register_taxonomy') );
+		// Apply the "category" (we call them "channels") taxonomy to bp_docs.
+		add_filter( 'bp_init', array( $cpt_tax_class, 'apply_channels_to_bp_docs'), 12 );
 
 		$plugin_public = new CC_MRAD_Public( $this->get_plugin_name(), $this->get_version() );
 		add_filter( 'xmlrpc_methods', array( $plugin_public, 'filter_xmlrpc_methods' ) );
@@ -241,6 +243,19 @@ class CC_MRAD {
 
 		// Prefix the title with "map" or "report" if applicable.
 		add_filter( 'the_title', array( $plugin_public, 'add_doc_type_to_title' ), 10, 2 );
+		// Add a "Channels" column to the docs loop
+		add_filter( 'bp_docs_loop_additional_th', array( $plugin_public, 'channels_th' ) );
+		add_filter( 'bp_docs_loop_additional_td', array( $plugin_public, 'channels_td' ) );
+
+		// Add a "Channels" meta box to the docs edit screen
+		add_action( 'bp_docs_after_tags_meta_box', array( $plugin_public, 'docs_edit_channels_metabox' ), 10, 1 );
+		// Save channel selections from doc edit screen.
+		add_action( 'bp_docs_doc_saved', array( $plugin_public, 'save_channel_selection' ) );
+
+		// @TODO: Scope these
+		add_action( 'wp_enqueue_scripts', array( $plugin_public, 'enqueue_styles') );
+		add_action( 'wp_enqueue_scripts', array( $plugin_public, 'enqueue_scripts') );
+
 
 		// add our callback to both ajax actions.
 		// add_action( "wp_ajax_ccgp_get_page_details", array( $plugin_public, "ajax_update_item" ) );
