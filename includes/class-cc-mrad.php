@@ -303,6 +303,9 @@ class CC_MRAD {
 
 		add_filter( 'bp_docs_get_doc_edit_link', array( $plugin_public, 'filter_bp_docs_get_doc_edit_link') );
 
+		// insert maps and reports on channel pages.
+		add_action( 'channel_page_after_featured_story', array( $plugin_public, 'add_featured_map_to_channel_page' ), 10, 2 );
+		add_action( 'channel_page_after_featured_story', array( $plugin_public, 'add_featured_report_to_channel_page' ), 12, 2 );
 
 		// Add a way to get the possible map categories via JSON.
 		add_action( 'wp_ajax_nopriv_cc-json-get-map-categories', array( $plugin_public, 'json_get_map_categories' ) );

@@ -1362,4 +1362,234 @@ class CC_MRAD_Public {
 		}
 	}
 
+	public function add_featured_map_to_channel_page( $category_id, $category_name ) {
+		$properties = $this->get_channel_block_properties( $category_id, $category_name );
+
+		$items = array();
+		if ( $properties['maps_use_keyword'] ) {
+			$items = $this->get_featured_items( 'map', 1, $properties['search_terms'] );
+		}
+
+		if ( empty( $items ) ) {
+			// Fallback to most recent featured if no results
+			$items = $this->get_featured_items( 'map', 1 );
+		}
+
+		$item = ( $items ) ? $items[0] : array();
+		if ( ! empty( $item ) ) :
+			?>
+			<div class="half-block card flex">
+				<span class="corner-ribbon">
+					<span class="mapx24-white" style="display:block;"></span>
+				</span>
+				<a href="<?php echo $item['link'] ?>"></a>
+				<script src='http://maps.communitycommons.org/jscripts/mapWidget.js?mapid=<?php echo $item['id']; ?>&w=600&h=300&bbox=<?php echo $item['mapbbox']; ?>&style=responsive'></script>
+				<div class="entry-content">
+					<h3 class="entry-title small"><a href="<?php echo $item['link'] ?>"><?php echo $item['title']; ?></a></h3>
+					<p class="meta"><em>Created by</em> <?php echo bp_core_get_userlink( $item['owner'] ); ?></p>
+
+					<a href="<?php echo $properties['more_maps_url']; ?>"><?php echo $properties['more_maps_label']; ?></a>
+				</div>
+			</div>
+			<?php
+		endif;
+	}
+
+	function add_featured_report_to_channel_page( $category_id, $category_name ) {
+		$properties = $this->get_channel_block_properties( $category_id, $category_name );
+		?>
+		<div class="half-block card flex">
+			<span class="corner-ribbon">
+				<span class="reportx24-white" style="display:block;"></span>
+			</span>
+			<a href="http://assessment.communitycommons.org/CHNA/SelectArea.aspx?reporttype=<?php echo $properties['report_topic']; ?>"><img src="<?php echo $this->get_report_block_header_image_url( $category_id ); ?>"></a>
+			<div class="entry-content">
+				<p>Use our reporting tools to better understand the area and people you serve.</p>
+				<p class="meta"><a href="http://assessment.communitycommons.org/CHNA/SelectArea.aspx?reporttype=<?php echo $properties['report_topic']; ?>">Start a new <?php echo $properties['report_label']; ?>.</a></p>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Helper function to determine widget characteristics based on category.
+	 *
+	 * @since    0.9
+	 */
+	function get_channel_block_properties( $category_id, $category_name ) {
+		$retval = array();
+
+		// REPORTS *****
+		// There are no featured reports, but there are topic-based reports that we will direct users to.
+		// From Erin:
+		// Cat -> Topic-based report.
+		// Health → Health Indicator Report
+		// Education -->Education Indicator Report
+		// Economy-->Economic Indicator Report
+		// Food -->Food Environment Report
+		// Environment → Physical Environment Report
+		// Equity → Health Equity Assessment Report
+
+		// The default is the “Full Report” here:
+		// http://assessment.communitycommons.org/CHNA/SelectArea.aspx?reporttype=libraryCHNA
+		// Topic-based reports:
+		// Base URL: http://assessment.communitycommons.org/CHNA/SelectArea.aspx?reporttype=
+		// Community Context: COMM
+		// Economics: ECON
+		// Education: EDU
+		// Equity: HE
+		// Food: FOOD
+		// Health: HEALTH
+		// Physical Environment: ENVIRO
+		switch ( $category_id ) {
+			case '888': // Economy
+				$retval['report_topic'] = 'ECON';
+				$retval['report_label'] = 'economic indicator report';
+				break;
+			case '891': // Food
+				$retval['report_topic'] = 'FOOD';
+				$retval['report_label'] = 'food environment report';
+				break;
+			case '889': // Education
+				$retval['report_topic'] = 'EDU';
+				$retval['report_label'] = 'education indicator report';
+				break;
+			case '897': // Environment
+				$retval['report_topic'] = 'ENVIRO';
+				$retval['report_label'] = 'physical environment report';
+				break;
+			case '58624': // Equity
+				$retval['report_topic'] = 'HE';
+				$retval['report_label'] = 'health equity assessment report';
+				break;
+			case '1308': // Health
+				$retval['report_topic'] = 'HEALTH';
+				$retval['report_label'] = 'health indicator report';
+				break;
+			case '1': // General
+			case '57528': // Guest Voice
+			default:
+				$retval['report_topic'] = 'COMM';
+				$retval['report_label'] = 'community context indicator report';
+				break;
+		}
+
+		// MAPS *****
+		switch ( $category_id ) {
+			case '888': // Economy
+				$retval['maps_use_keyword'] = true;
+				$retval['search_terms'] = urlencode( 'poverty,income,economic,economy,wages,housing,SNAP' );
+				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?search=' . $retval['search_terms'];
+				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
+				break;
+			case '889': // Education
+				$retval['maps_use_keyword'] = true;
+				$retval['search_terms'] = urlencode( 'school,education,children,attainment,reading,math,learning,kids,youth' );
+				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?search=' . $retval['search_terms'];
+				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
+				break;
+			case '1308': // Health
+				$retval['maps_use_keyword'] = true;
+				$retval['search_terms'] = urlencode( 'health,access,insurance,clinical_care,medical,behaviors,outcomes,rankings,facilities,walking,mental,tobacco,dental,disease' );
+				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?search=' . $retval['search_terms'];
+				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
+				break;
+			case '891': // Food
+				$retval['maps_use_keyword'] = true;
+				$retval['search_terms'] = urlencode('poverty,food,access,food_environment,facilities,food_desert,farm,school_lunch,school,marketing,agriculture' );
+				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?search=' . $retval['search_terms'];
+				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
+				break;
+			case '897': // Environment
+				$retval['maps_use_keyword'] = true;
+				$retval['search_terms'] = urlencode( 'physical environment,environment,built environment,environmental,natural environment,natural,climate,drought,water,soil' );
+				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?search=' . $retval['search_terms'];
+				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
+				break;
+			case '58624': // Equity
+				$retval['maps_use_keyword'] = true;
+				$retval['search_terms'] = urlencode( 'race,diversity,social justice,ethnicity,inequality,equity,equality,rural,housing' );
+				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?search=' . $retval['search_terms'];
+				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
+				break;
+			case '1': // General
+			case '57528': // Guest Voice
+			default:
+				$retval['maps_use_keyword'] = false;
+				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx';
+				$retval['more_maps_label'] = 'Browse maps.';
+				break;
+		}
+
+		return $retval;
+	}
+
+	/**
+	 * We use a subset of the complete list of categories for maps
+	 * This function excludes the unnecessary options.
+	 *
+	 * @since    0.9
+	 */
+	function get_possible_map_categories() {
+		// 1 is "uncategorized", 57528 is "guest voice"
+		$exclude_cats = '1,57528';
+	    $args = array(
+				'hide_empty'	=> 0,
+				'exclude'		=> $exclude_cats,
+				);
+		return get_categories( $args );
+	}
+
+	/**
+	 * Add a way to get the possible map categories via JSON.
+	 *
+	 * @since    0.9
+	 */
+	public function json_get_map_categories(){
+		$categories = $this->get_possible_map_categories();
+		$retval = array();
+		foreach ( $categories as $cat ) {
+			$retval[] = array(
+				'name'		=> $cat->name,
+				'slug'		=> $cat->slug,
+				'term_id' 	=> (int) $cat->term_id,
+				);
+		}
+
+		// Send response
+		header("content-type: text/javascript; charset=utf-8");
+	    header("Access-Control-Allow-Origin: *");
+		echo htmlspecialchars($_GET['callback']) . '(' . json_encode( $retval ) . ')';
+
+	    exit;
+	}
+
+	public function get_report_block_header_image_url( $category_id ) {
+		switch ( $category_id ) {
+			case '888': // Economy
+				$filename = 'economy.png';
+				break;
+			case '891': // Food
+				$filename = 'food.png';
+				break;
+			case '897': // Environment
+				$filename = 'environment.png';
+				break;
+			case '889': // Education
+				$filename = 'education.png';
+				break;
+			case '1308': // Health
+				$filename = 'health.png';
+				break;
+			case '58624': // Equity
+			case '1': // General
+			case '57528': // Guest Voice
+			default:
+				$filename = 'general.png';
+				break;
+			}
+
+		return plugin_dir_url( __FILE__ ) . 'img/' . $filename;
+	}
+
 } // End class
