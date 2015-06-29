@@ -245,7 +245,7 @@ class CC_MRAD {
 		// Add our templates to BuddyPress' template stack.
 		// Then, any templates that are specified using `bp_buffer_template_part()` in bp-docs will
 		// be overridden by the same template file in our template folder.
-		add_filter( 'bp_get_template_stack', array( $plugin_public, 'add_template_stack'), 10, 1 );
+		// add_filter( 'bp_get_template_stack', array( $plugin_public, 'add_template_stack'), 10, 1 );
 
 		// Maps and reports don't have a "trash" analog, so when one is deleted, we really delete it here, too.
 		add_action( 'bp_docs_doc_deleted', array( $plugin_public, 'permanently_delete_maps_reports') );
