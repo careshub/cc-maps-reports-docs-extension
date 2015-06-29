@@ -136,6 +136,7 @@ class CC_MRAD_BP_Doc_Save {
 
                 // We only save the author for new docs.
                 $r['post_author'] = $args['author_id'];
+                $r['post_date'] = $args['post_date'];
 
                 // If there's a 'doc_id' value use
                 // the autodraft as a starting point.
