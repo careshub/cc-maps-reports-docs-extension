@@ -14,7 +14,19 @@
  */
 
 function mrad_report_base_url() {
-    return 'http://assessment.communitycommons.org/';
+    // We use the staging site for testing, use the real maps environment for production.
+    $location = get_site_url();
+    switch ( $location ) {
+        case 'http://www.communitycommons.org':
+            // Production value:
+            $base_url = 'http://assessment.communitycommons.org/';
+            break;
+        default:
+            // Testing value:
+            $base_url = 'http://staging.maps.communitycommons.org/';
+            break;
+    }
+    return apply_filters( 'mrad_report_base_url', $base_url );
 }
 
 function mrad_report_create_link_url() {
@@ -35,7 +47,19 @@ function mrad_report_open_link_url( $doc_id = 0 ) {
 }
 
 function mrad_map_base_url() {
-    return 'http://maps.communitycommons.org/';
+    // We use the staging site for testing, use the real maps environment for production.
+    $location = get_site_url();
+    switch ( $location ) {
+        case 'http://www.communitycommons.org':
+            // Production value:
+            $base_url = 'http://maps.communitycommons.org/';
+            break;
+        default:
+            // Testing value:
+            $base_url = 'http://staging.maps.communitycommons.org/';
+            break;
+    }
+    return apply_filters( 'mrad_map_base_url', $base_url );
 }
 
 function mrad_map_create_link_url() {
