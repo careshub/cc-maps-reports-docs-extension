@@ -237,7 +237,11 @@ class CC_MRAD {
 		add_filter( 'bp_init', array( $cpt_tax_class, 'apply_channels_to_bp_docs'), 12 );
 
 		$plugin_public = new CC_MRAD_Public( $this->get_plugin_name(), $this->get_version() );
-		add_filter( 'xmlrpc_methods', array( $plugin_public, 'filter_xmlrpc_methods' ) );
+		// Add wp_ajax listeners to accept incoming information about map activity.
+		// 'nopriv' is used when the user isn't logged in, so we shouldn't use it.
+		// add_action( 'wp_ajax_nopriv_cc-update-maps-reports', array( $plugin_public, 'json_update_maps_reports' ) );
+		add_action( 'wp_ajax_cc-update-maps-reports', array( $plugin_public, 'json_update_maps_reports' ) );
+
 		// Add our templates to BuddyPress' template stack.
 		// Then, any templates that are specified using `bp_buffer_template_part()` in bp-docs will
 		// be overridden by the same tempalte file in our template folder.

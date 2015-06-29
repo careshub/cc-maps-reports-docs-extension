@@ -40,6 +40,16 @@ class CC_MRAD_Public {
 	 */
 	private $version;
 
+
+	/**
+	 * The version of this plugin.
+	 *
+	 * @since    1.0.0
+	 * @access   public
+	 * @var      string    $type_taxonomy_name    The name of the "MRAD Types" taxonomy.
+	 */
+	public $type_taxonomy_name;
+
 	/**
 	 * Initialize the class and set its properties.
 	 *
@@ -51,6 +61,10 @@ class CC_MRAD_Public {
 
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
+
+		// $mrad_class = CC_MRAD::get_instance();
+		// $this->type_taxonomy_name = $mrad_class->get_taxonomy_name();
+		$this->type_taxonomy_name = 'bp_docs_type';
 
 	}
 
@@ -96,17 +110,6 @@ class CC_MRAD_Public {
 
 		// wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/cc-group-pages-edit.js', array( 'jquery' ), $this->version, false );
 
-	}
-
-	/**
-	 * Register new XML-RPC methods to catch incoming updates from the Maps system.
-	 *
-	 * @since    1.0.0
-	 */
-	public function filter_xmlrpc_methods( $methods ) {
-	    $methods['cc.record_map_activity'] = array( $this, 'xmlrpc_update_maps_reports' );
-	    $methods['cc.delete_map_activity'] = array( $this, 'xmlrpc_delete_maps_reports' );
-	    return $methods;
 	}
 
 	// API requests against the Maps/Reports DB
@@ -164,12 +167,12 @@ class CC_MRAD_Public {
 	 ***/
 	function get_featured_items( $item_type, $number_of_items, $keywords = false ) {
 		// Get some map results.
-		$item_details = cc_json_svc_make_request( $item_type, $group_id = false, $user_id = false, $search = $keywords, $item_id = false, $featured = true );
+		$item_details = $this->json_svc_make_request( $item_type, $group_id = false, $user_id = false, $search = $keywords, $item_id = false, $featured = true );
 
 		// Sort them by id DESC.
 		$date_order = array();
 		foreach ( $item_details as $key => $row)	{
-		    $date_order[$key] = $row['id'];
+			$date_order[$key] = $row['id'];
 		}
 		// Return the most recent x.
 		if ( array_multisort( $date_order, SORT_DESC, $item_details ) ) {
@@ -195,7 +198,8 @@ class CC_MRAD_Public {
 			return false;
 		}
 
-		$uri = "http://maps.communitycommons.org/apiservice/savedcontent.svc/?itemtype={$item_type}";
+		// Use production or test value of API endpoint?
+		$uri = mrad_map_base_url() . "services/usercontent/savedcontent.svc/?itemtype={$item_type}";
 
 		if ( $group_id ) {
 			$uri = $uri . "&hubid={$group_id}";
@@ -212,17 +216,17 @@ class CC_MRAD_Public {
 		if ( $featured ) {
 			$uri = $uri . "&featured=1";
 		}
-	    // $towrite = PHP_EOL . print_r( $uri, TRUE );
-	    // $fp = fopen('svc-request.txt', 'a');
-	    // fwrite($fp, $towrite);
-	    // fclose($fp);
+		$towrite = PHP_EOL . print_r( $uri, TRUE );
+		$fp = fopen('json_update_maps_reports.txt', 'a');
+		fwrite($fp, $towrite);
+		fclose($fp);
 
 		$response = wp_remote_get( $uri );
 
-	    if ( is_wp_error( $response ) )
-	        return false;
+		if ( is_wp_error( $response ) )
+			return false;
 
-	    if ( $body = wp_remote_retrieve_body( $response ) ) {
+		if ( $body = wp_remote_retrieve_body( $response ) ) {
 			$decoded = json_decode( $body, true );
 			if ( $item_id ) {
 				// For single results, only return the result--no wrapper array.
@@ -236,228 +240,149 @@ class CC_MRAD_Public {
 	}
 
 	/**
-	 * We'll need to create/update docs to mirror what's happening on the maps/reports side.
-	 *
-	 * @since    1.0.0
-	 */
-	function xmlrpc_update_maps_reports( $args ) {
-	    global $wp_xmlrpc_server;
-	    $wp_xmlrpc_server->escape( $args );
+	* Send DELETE requests
+	* @param 	$item_type 	string 	map|report|area
+	* @param 	$item_id 	int 	ID of individual item. Must be used in combination with $item_type.
+	* @param 	$group_id 	int Optional. If specified, will disassociate from the group only, not delete the item.
+	*
+	*/
+	function json_svc_make_delete_request( $item_type, $item_id, $group_id = false ) {
+		if ( ! in_array( $item_type, array( 'map', 'report', 'area' ) ) ) {
+			return false;
+		}
 
-	    $towrite = PHP_EOL . print_r($date = date('Y-m-d H:i:s'), TRUE) . ' | ' . print_r($args, TRUE);
-	    $fp = fopen('xml-rpc-request-args.txt', 'a');
-	    fwrite($fp, $towrite);
-	    fclose($fp);
+		$current_user = wp_get_current_user();
+		// Item ID and User ID are required.
+		if ( empty( $item_id ) || empty( $current_user->ID ) ) {
+			return false;
+		}
 
-	    //New idea, get simple request, use JSON request to get details (for reliable escaping and better security)
-	    $username = $args[0];
-	    $password = $args[1];
-	    $activity_type = $args[2];
-	    $item_id = $args[3]; //Should be the id of the map or report, they're in different tables, so could have duplicate ids, unfort. If item is saved to a group, we use that ID for the item_id
+		// Use production or test value of API endpoint?
+		$uri = mrad_map_base_url() . "services/usercontent/savedcontent.svc/?itemtype={$item_type}";
+		$uri .= "&userid={$current_user->ID}&key=" . md5( $current_user->user_pass );
 
-	    //Make sure that the requester is legit
-	    $user = get_user_by( 'login', $username );
+		if ( $item_id ) {
+			$uri = $uri . "&itemid={$item_id}";
+		}
+		if ( $group_id ) {
+			$uri = $uri . "&hubid={$group_id}";
+		}
+		$towrite = PHP_EOL . 'Making a DELETE request.' . print_r( $uri, TRUE );
+		$fp = fopen('json_update_maps_reports.txt', 'a');
+		fwrite($fp, $towrite);
+		fclose($fp);
 
-	    //Compare the hashed password to the submitted pw
-	    if ( ! $user || $user->user_pass != $password ) {
-	        return 'The username or password is incorrect.';
-	      }
+		$args = array(
+		    'method' => 'DELETE'
+		);
 
-	    //Make sure the request is a type we recognize, if it is, get the details
-	    switch ( $activity_type ) {
-	      case 'map_created':
-	        $item_type = 'map';
-	        $meta_query_key = 'map_table_ID';
-	        break;
-	      case 'report_created':
-	        $item_type = 'report';
-  	        $meta_query_key = 'report_table_ID';
-	        break;
-	      default:
-	          // No match, bail
-	          return $wp_xmlrpc_server->error;
-	        break;
-	    }
-	    //This function makes a JSON request to get the item details
-	    $item = $this->get_single_map_report( $item_id, $item_type );
+		$response = wp_remote_request( $uri, $args );
 
-	    $towrite = PHP_EOL . 'json item response ' . print_r($item, TRUE);
-	    $fp = fopen('xml-rpc-request-args.txt', 'a');
-	    fwrite($fp, $towrite);
-	    fclose($fp);
+		$towrite = PHP_EOL . '$response: ' . print_r( $response, TRUE );
+		$fp = fopen('json_update_maps_reports.txt', 'a');
+		fwrite($fp, $towrite);
+		fclose($fp);
 
-	    if ( $item ) {
-	    	$mrad_class = CC_MRAD::get_instance();
-	    	$bp = buddypress();
-	    	$bp_docs_tag_tax_name = $bp->bp_docs->docs_tag_tax_name;
+		if ( is_wp_error( $response ) )
+			return false;
 
-			$args = array(
-				'title'			=> $item['title'],
-				'content' 		=> $item['description'],
-				'author_id'		=> $user->ID,
-				'group_id'		=> 0,
-				'is_auto'		=> 0,
-				// 'taxonomies'	=> array( $bp_docs_tag_tax_name => $item['tags'] ),
-				'settings'		=> array(   'read' => 'creator',
-											'edit' => 'creator',
-											'read_comments' => 'creator',
-											'post_comments' => 'creator',
-											'view_history' => 'creator'
-										),
-				'parent_id'		=> 0,
-			);
-
-
-			// $user_link = bp_core_get_userlink( $item['owner'] );
-			// $item_link = '<a href="' . $item['link'] . '">' . $item['title'] . '</a>';
-
-			// Prepare the item to be saved.
-
-			// See if a post already exists, and we should just update it.
-			// We store the map or report table ID as post meta because they are the masters.
-			// Note that duplicate IDs will exist because they're stored in two tables.
-
-			// BuddyPress Docs hides off-limit docs, so we'll need to temporarily turn off its access protection
-			remove_action( 'pre_get_posts', 'bp_docs_general_access_protection', 28 );
-
-			$meta_query = get_posts( array(
-					'post_type'    => bp_docs_get_post_type_name(),
-					'meta_key'     => $meta_query_key,
-					'meta_value'   => $item_id,
-					'meta_compare' => '='
-			) );
-
-			add_action( 'pre_get_posts', 'bp_docs_general_access_protection', 28 );
-
-		    // $towrite = PHP_EOL . 'meta query found posts # ' . print_r($meta_query->found_posts, TRUE);
-   		    // $towrite .= PHP_EOL . 'meta query ' . print_r ( $meta_query, TRUE);
-
-		    if ( ! empty( $meta_query ) ) {
-   				// $found_post_ids = wp_list_pluck( $meta_query, 'ID' );
-		    	// Grab the ID for passing into our save function.
-		    	$args['doc_id'] = current( $meta_query )->ID;
-		    }
-
-		    // Sharing
-		    switch ( $item['sharing'] ) {
-		    	case 'public':
-		    		// $args['group_id'] = 0;
-    				$args['settings'] = array( 	'read' => 'anyone',
-													'edit' => 'creator',
-													'read_comments' => 'anyone',
-													'post_comments' => 'anyone',
-													'view_history' => 'creator'
-						);
-		    		break;
-		    	case 'personal':
-		    		// $args['group_id'] = 0;
-    				// $args[ 'settings' ] Uses the defaults.
-			    	break;
-		    	// Anything else is a group id.
-		    	default:
-		    		$args['group_id'] = (int) $item['sharing'];
-    				$args['settings'] = array(    'read' => 'group-members',
-													'edit' => 'creator',
-													'read_comments' => 'group-members',
-													'post_comments' => 'group-members',
-													'view_history' => 'creator'
-						);
-		    		break;
-		    }
-
-		    // if ( $item['itemtype'] == 'map' ) {
-		    // 	$args['taxonomies'][$mrad_class->get_taxonomy_name()] = 'map';
-		    // } elseif ( $item['itemtype'] == 'report' ) {
-		    // 	$args['taxonomies'][$mrad_class->get_taxonomy_name()] = 'report';
-		    // }
-
-		    $towrite = PHP_EOL . 'args just before save ' . print_r( $args, TRUE );
-		    $fp = fopen('xml-rpc-request-args.txt', 'a');
-		    fwrite($fp, $towrite);
-		    fclose($fp);
-
-		    // Save!
-    		$instance = new CC_MRAD_BP_Doc_Save;
-			$post_id = $instance->save( $args );
-
-		    $towrite = PHP_EOL . 'post id ' . print_r( $post_id, TRUE );
-		    $fp = fopen('xml-rpc-request-args.txt', 'a');
-		    fwrite($fp, $towrite);
-		    fclose($fp);
-
-			// If the save was successful, save some post meta.
-			if ( ! empty( $post_id ) ) {
-				update_post_meta( $post_id, $meta_query_key, $item['id'] );
-
-			    if ( $item['itemtype'] == 'map' ) {
-			    	// $args['taxonomies'][$mrad_class->get_taxonomy_name()] = 'map';
-                    $tax_result = wp_set_object_terms( $post_id, 'map', $mrad_class->get_taxonomy_name() );
-			    } elseif ( $item['itemtype'] == 'report' ) {
-			    	// $args['taxonomies'][$mrad_class->get_taxonomy_name()] = 'report';
-                    $tax_result = wp_set_object_terms( $post_id, 'report', $mrad_class->get_taxonomy_name() );
-			    }
-
-			    if ( ! empty( $item['tags'] ) ) {
-			    	wp_set_object_terms( $post_id, $item['tags'], $bp_docs_tag_tax_name );
-			    }
-			    //@TODO: Set the channel, too.
-			}
-
-	  } else {
-
-	    $towrite = PHP_EOL . 'The JSON request returned an empty object.';
-	    $fp = fopen('xml-rpc-request-args.txt', 'a');
-	    fwrite($fp, $towrite);
-	    fclose($fp);
-
-	  }
+		// if ( $body = wp_remote_retrieve_body( $response ) ) {
+		// 	$decoded = json_decode( $body, true );
+		// 	if ( $item_id ) {
+		// 		// For single results, only return the result--no wrapper array.
+		// 		return $decoded[0];
+		// 	} else {
+		// 		return $decoded;
+		// 	}
+		// } else {
+		// 	return false;
+		// }
 	}
 
 	/**
-	 * We'll also need to delete docs when receiving notice via XML-RPC
+	 * We'll need to create/update/delete docs to mirror what's
+	 * happening on the maps/reports side.
 	 *
 	 * @since    1.0.0
 	 */
-	function xmlrpc_delete_maps_reports( $args ) {
-	    global $wp_xmlrpc_server;
-	    $wp_xmlrpc_server->escape( $args );
+	function json_update_maps_reports() {
+		$towrite = PHP_EOL . print_r( $date = date( 'Y-m-d H:i:s' ), TRUE ) . ' | ' . print_r( $_REQUEST, TRUE );
 
-	    $towrite = PHP_EOL . print_r($date = date('Y-m-d H:i:s'), TRUE) . ' | ' . print_r($args, TRUE);
-	    $fp = fopen('xml-rpc-request-args.txt', 'a');
-	    fwrite($fp, $towrite);
-	    fclose($fp);
+		// Safe defaults
+		$response = array();
+		$item = array();
+		$found_post_ids = array();
+		$doc_id = 0;
 
-	    //New idea, get simple request, use JSON request to get details (for reliable escaping and better security)
-	    $username = $args[0];
-	    $password = $args[1];
-	    $activity_type = $args[2];
-	    $item_id = $args[3]; //Should be the id of the map or report, they're in different tables, so could have duplicate ids, unfort. If item is saved to a group, we use that ID for the item_id
+		// Receive simple request, use JSON request to get details (for reliable escaping)
+		$user_id = $_REQUEST['user_id'];;
+		$activity_type = $_REQUEST['activity_type'];
+		$item_id = $_REQUEST['item_id']; //Should be the id of the map or report, they're in different tables, so could have duplicate ids, unfort. If item is saved to a group, we use that ID for the item_id
 
-	    //Make sure that the requester is legit
-	    $user = get_user_by( 'login', $username );
+		// Check that this activity was generated by the currently logged in user.
+		$towrite .= PHP_EOL . 'Who does WP think is logged in? ' . print_r( get_current_user_id(), TRUE );
+		$fp = fopen('json_update_maps_reports.txt', 'a');
+		fwrite($fp, $towrite);
+		fclose($fp);
 
-	    //Compare the hashed password to the submitted pw
-	    if ( ! $user || $user->user_pass != $password ) {
-	        return 'The username or password is incorrect.';
-	      }
+		// Check that the user is properly logged in.
+		$current_user_id = get_current_user_id();
+		if ( empty( $current_user_id ) ) {
+			// Something is wrong. The user must be logged in to save/edit maps.
+			// Set JSON response
+			$response = array(
+				'doc_id' => 0,
+				'message' => "The user must be logged in.",
+				);
 
-	    //Make sure the request is a type we recognize, if it is, get the details
-	    switch ( $activity_type ) {
-	      case 'map_deleted':
-	        $item_type = 'map';
-	        $meta_query_key = 'map_table_ID';
-	        break;
-	      case 'report_deleted':
-	        $item_type = 'report';
-  	        $meta_query_key = 'report_table_ID';
-	        break;
-	      default:
-	          // No match, bail
-	          return $wp_xmlrpc_server->error;
-	        break;
-	    }
+			// Send response
+			header("content-type: text/javascript; charset=utf-8");
+			header("Access-Control-Allow-Origin: *");
+			echo htmlspecialchars($_REQUEST['callback']) . '(' . json_encode( $response ) . ')';
+			exit;
+		}
 
-	    // Find the correct doc
+		// Make sure the request is a type we recognize, if it is, get the details
+		switch ( $activity_type ) {
+		  case 'map_updated':
+  				$item_type = 'map';
+				$meta_query_key = 'map_table_ID';
+				$action = 'update';
+				break;
+		  case 'map_deleted':
+				$item_type = 'map';
+				$meta_query_key = 'map_table_ID';
+				$action = 'delete';
+				break;
+		  case 'report_updated':
+		  		$item_type = 'report';
+				$meta_query_key = 'report_table_ID';
+				$action = 'update';
+				break;
+		  case 'report_deleted':
+				$item_type = 'report';
+				$meta_query_key = 'report_table_ID';
+				$action = 'delete';
+				break;
+		  default:
+				// This is an error condition.
+				// Set JSON response
+				$response = array(
+					'doc_id' => 0,
+					'message' => "That activity_type is unknown.",
+					);
+
+				// Send response
+				header("content-type: text/javascript; charset=utf-8");
+				header("Access-Control-Allow-Origin: *");
+				echo htmlspecialchars( $_REQUEST['callback'] ) . '(' . json_encode( $response ) . ')';
+				exit;
+
+				break;
+		}
+
+		// Let's see if a doc already exists, and we're making updates to it, or creating a new doc.
+		// Find the correct doc
 		// BuddyPress Docs hides off-limit docs, so we'll need to temporarily turn off its access protection
 		remove_action( 'pre_get_posts', 'bp_docs_general_access_protection', 28 );
 
@@ -470,17 +395,356 @@ class CC_MRAD_Public {
 
 		add_action( 'pre_get_posts', 'bp_docs_general_access_protection', 28 );
 
-	    if ( ! empty( $meta_query ) ) {
+		if ( ! empty( $meta_query ) ) {
 			$found_post_ids = wp_list_pluck( $meta_query, 'ID' );
-			foreach ( $found_posts as $post_id ) {
-				wp_delete_post( $post_id, $force_delete = true );
-			}
-	    }
 
-	    return 'The post was deleted successfully';
+		    $towrite = PHP_EOL . 'Found these docs: ' . print_r( implode( ', ', $found_post_ids ), TRUE);
+		    $fp = fopen('json_update_maps_reports.txt', 'a');
+		    fwrite($fp, $towrite);
+		    fclose($fp);
+		}
+
+
+		// OK, so we're updating an existing post. Can this user do that?
+		if ( ! empty( $found_post_ids ) ) {
+			$doc_id = current( $found_post_ids );
+			if ( ! current_user_can( 'bp_docs_edit', $doc_id ) ) {
+
+				$towrite = PHP_EOL . 'This user cannot update this doc.' . print_r( $doc_id, TRUE );
+				$fp = fopen('json_update_maps_reports.txt', 'a');
+				fwrite($fp, $towrite);
+				fclose($fp);
+				// This is an error condition.
+				// Set JSON response
+				$response = array(
+					'doc_id' => $doc_id,
+					'message' => "This user can't update that doc.",
+					);
+
+				// Send response
+				header("content-type: text/javascript; charset=utf-8");
+				header("Access-Control-Allow-Origin: *");
+				echo htmlspecialchars( $_REQUEST['callback'] ) . '(' . json_encode( $response ) . ')';
+				exit;
+			} else {
+				$towrite = PHP_EOL . 'This user is allowed to update this doc.' . print_r( $doc_id, TRUE );
+				$fp = fopen('json_update_maps_reports.txt', 'a');
+				fwrite($fp, $towrite);
+				fclose($fp);
+			}
+		}
+
+		// Handle the update/create actions
+		if ( 'update' == $action ) {
+
+			// Make a JSON request to get the item details.
+			$item = $this->get_single_map_report( $item_id, $item_type );
+
+			if ( $item ) {
+				$towrite = PHP_EOL . 'json item response ' . print_r( $item, TRUE );
+				$fp = fopen('json_update_maps_reports.txt', 'a');
+				fwrite($fp, $towrite);
+				fclose($fp);
+
+				$mrad_class = CC_MRAD::get_instance();
+				$bp = buddypress();
+				$bp_docs_tag_tax_name = $bp->bp_docs->docs_tag_tax_name;
+
+				$args = array(
+					'title'			=> $item['title'],
+					'content' 		=> $item['description'],
+					'group_id'		=> 0,
+					'is_auto'		=> 0,
+					// 'taxonomies'	=> array( $bp_docs_tag_tax_name => $item['tags'] ),
+					'settings'		=> array(   'read' => 'creator',
+												'edit' => 'creator',
+												'read_comments' => 'creator',
+												'post_comments' => 'creator',
+												'view_history' => 'creator'
+											),
+					'parent_id'		=> 0,
+				);
+
+				// Prepare the item to be saved.
+
+				if ( ! empty( $doc_id ) ) {
+					// $found_post_ids = wp_list_pluck( $meta_query, 'ID' );
+					// Grab the ID for passing into our save function.
+					$args['doc_id'] = $doc_id;
+				} else {
+					// We add an author_id to new docs
+					$args['author_id'] = $user_id;
+					// Let's get the date right, too.
+					$args['post_date'] = $this->convert_date_to_wp_format( $item['savedate'] );
+				}
+
+				// Sharing
+				switch ( $item['sharing'] ) {
+					case 'public':
+						// $args['group_id'] = 0;
+						$args['settings'] = array( 	'read' => 'anyone',
+														'edit' => 'creator',
+														'read_comments' => 'anyone',
+														'post_comments' => 'anyone',
+														'view_history' => 'creator'
+							);
+						break;
+					case 'personal':
+						// $args['group_id'] = 0;
+						// $args[ 'settings' ] Uses the defaults.
+						break;
+					// Anything else is a group id.
+					default:
+						$args['group_id'] = (int) $item['sharing'];
+						$args['settings'] = array(    'read' => 'group-members',
+														'edit' => 'creator',
+														'read_comments' => 'group-members',
+														'post_comments' => 'group-members',
+														'view_history' => 'creator'
+							);
+						break;
+				}
+
+				$towrite = PHP_EOL . 'args just before save ' . print_r( $args, TRUE );
+				$fp = fopen('json_update_maps_reports.txt', 'a');
+				fwrite($fp, $towrite);
+				fclose($fp);
+
+				// Save!
+				$instance = new CC_MRAD_BP_Doc_Save;
+				$post_id = $instance->save( $args );
+
+				$towrite = PHP_EOL . 'post id ' . print_r( $post_id, TRUE );
+				$fp = fopen('json_update_maps_reports.txt', 'a');
+				fwrite($fp, $towrite);
+				fclose($fp);
+
+				// If the save was successful, save some post meta.
+				if ( ! empty( $post_id ) ) {
+					$towrite = PHP_EOL . 'beginning post-save meta/taxonomy stuff. ' . print_r( $post_id, TRUE );
+
+					update_post_meta( $post_id, $meta_query_key, $item['id'] );
+
+					if ( $item['itemtype'] == 'map' ) {
+						// $args['taxonomies'][$mrad_class->get_taxonomy_name()] = 'map';
+						$tax_result = wp_set_object_terms( $post_id, 'map', $this->type_taxonomy_name );
+					} elseif ( $item['itemtype'] == 'report' ) {
+						// $args['taxonomies'][$mrad_class->get_taxonomy_name()] = 'report';
+						$tax_result = wp_set_object_terms( $post_id, 'report', $this->type_taxonomy_name );
+					}
+
+					if ( ! empty( $item['tags'] ) ) {
+						// $item['tags'] is EXACTLY what the user entered in the save form
+						// on the mapping environment.
+						// No pre-processing, splitting, trimming has been done.
+						$tags = array_map( 'trim', explode( ',', $item['tags'] ) );
+						$towrite .= PHP_EOL . 'processed tags: ' . print_r( $tags, TRUE );
+
+						wp_set_object_terms( $post_id, $tags, $bp_docs_tag_tax_name );
+					}
+
+					if ( ! empty( $item['channel'] ) ) {
+						// $item['channel'] is an array of the term names, like:
+						// array( "Environment", "Economy")
+						// wp_set_object_terms() needs a slug or id, though, so we'll have to
+						// translate the terms names to ids.
+						$category_ids = array();
+						foreach ($item['channel'] as $cat_name) {
+							$category = get_term_by( 'name', $cat_name, 'category' );
+							if ( ! empty( $category ) ) {
+								$category_ids[] = (int) $category->term_id;
+							}
+						}
+						$towrite .= PHP_EOL . 'processed categories: ' . print_r( $category_ids, TRUE );
+
+						wp_set_object_terms( $post_id, $category_ids, 'category' );
+					}
+
+					$fp = fopen('json_update_maps_reports.txt', 'a');
+					fwrite($fp, $towrite);
+					fclose($fp);
+
+					// Set JSON response
+					$response = array(
+						'doc_id' => $post_id,
+						'message' => "Success! Created or updated the doc.",
+						);
+				}
+
+		  } else {
+		  		// Our JSON request failed for some reason.
+				$towrite = PHP_EOL . 'The JSON request returned an empty object.';
+				$fp = fopen('json_update_maps_reports.txt', 'a');
+				fwrite($fp, $towrite);
+				fclose($fp);
+
+				// Set JSON response
+				$response = array(
+					'doc_id' => 0,
+					'message' => "The JSON request for a $item_type with the ID $item_id failed.",
+					);
+		  }
+
+			// Send response
+			header("content-type: text/javascript; charset=utf-8");
+			header("Access-Control-Allow-Origin: *");
+			echo htmlspecialchars( $_REQUEST['callback'] ) . '(' . json_encode( $response ) . ')';
+			exit;
+
+		} elseif ( 'delete' == $action ) {
+
+			if ( ! empty( $found_post_ids ) ) {
+				$towrite = '';
+				foreach ( $found_post_ids as $post_id ) {
+					// @TODO: Maybe remove the action that pings Yan's system, since we know the request came from there?
+					$deleted = bp_docs_trash_doc( $post_id );
+				    $towrite .= PHP_EOL . 'success deleting ' . print_r( $post_id, TRUE) . ': ' . print_r( $deleted, TRUE);
+				}
+			    $fp = fopen('json_update_maps_reports.txt', 'a');
+			    fwrite($fp, $towrite);
+			    fclose($fp);
+			}
+
+			// Success.
+			// Set JSON response
+			$response = array(
+				'message' => "Doc deleted successfully.",
+			);
+
+			// Send response
+			header("content-type: text/javascript; charset=utf-8");
+			header("Access-Control-Allow-Origin: *");
+			echo htmlspecialchars( $_REQUEST['callback'] ) . '(' . json_encode( $response ) . ')';
+			exit;
+		}
 	}
 
-	// Templating
+	/**
+	 * Maps and reports don't have a "trash" analog, so when one is deleted,
+	 * we really delete it here, too.
+	 *
+	 * @since 1.0.0
+	 */
+	public function permanently_delete_maps_reports( $delete_args ) {
+		$doc_id = $delete_args['ID'];
+
+	    $towrite = PHP_EOL . 'in permanently_delete_maps_reports ' . print_r( $doc_id, TRUE);
+	    $towrite .= PHP_EOL . 'post_data ' . print_r( get_post( $doc_id ), TRUE);
+	    $fp = fopen('json_update_maps_reports.txt', 'a');
+	    fwrite($fp, $towrite);
+	    fclose($fp);
+
+		if ( ! empty( $doc_id ) ) {
+			return;
+		}
+
+		// $mrad_class = CC_MRAD::get_instance();
+		$terms = wp_get_object_terms( $doc_id, $this->type_taxonomy_name );
+		$item_type = '';
+
+		if ( ! empty( $terms ) ) {
+			$item_type = current( $terms )->slug;
+			switch ( $item_type ) {
+				case 'map':
+					$really_delete = true;
+					$meta_query_key = 'map_table_ID';
+					$item_id = get_post_meta( $doc_id, 'map_table_ID', true );
+					break;
+				case 'report':
+					// First, get some details because we'll need to ping the maps/reports environment on delete
+					$really_delete = true;
+					$item_id = get_post_meta( $doc_id, 'report_table_ID', true );
+					break;
+				default:
+				    $towrite = PHP_EOL . 'did not try to delete ' . print_r( $doc_id, TRUE);
+				    $fp = fopen('json_update_maps_reports.txt', 'a');
+				    fwrite($fp, $towrite);
+				    fclose($fp);
+					// Do nothing.
+					break;
+			}
+
+			// If the item_id has been set, this is a type we should delete.
+			if ( $item_id ) {
+				$deleted = wp_delete_post( $doc_id, false );
+			    $towrite = PHP_EOL . 'success piggyback permanent deletion of ' . print_r( $doc_id, TRUE) . ': ' . print_r( $deleted, TRUE);
+			    $fp = fopen('json_update_maps_reports.txt', 'a');
+			    fwrite($fp, $towrite);
+			    fclose($fp);
+
+			    // Has this item been deleted from the map/report environment?
+			    $item = $this->get_single_map_report( $item_id, $item_type );
+
+			    if ( ! empty( $item ) ) {
+				    $delete_that_item = $this->json_svc_make_delete_request( $item_type, $item_id );
+			    }
+			}
+		}
+	}
+
+	/**
+	 * Maps and reports don't have a "trash" analog, so when one is deleted,
+	 * we really delete it here, too.
+	 *
+	 * @since 1.0.0
+	 */
+	public function ping_map_env_on_doc_unlink_from_group( $doc_id, $group_id ) {
+		// $mrad_class = CC_MRAD::get_instance();
+		$terms = wp_get_object_terms( $doc_id, $this->type_taxonomy_name );
+		$item_type = '';
+
+		if ( ! empty( $terms ) ) {
+			$item_type = current( $terms )->slug;
+			switch ( $item_type ) {
+				case 'map':
+					$item_id = get_post_meta( $doc_id, 'map_table_ID', true );
+					break;
+				case 'report':
+					$item_id = get_post_meta( $doc_id, 'report_table_ID', true );
+					break;
+				default:
+					// Do nothing.
+					break;
+			}
+
+			// If the item_id has been set, this is a type we can work with.
+			if ( $item_id ) {
+			    $towrite = PHP_EOL . 'Attempting to change the group assoc on maps for doc_id: ' . print_r( $doc_id, TRUE);
+			    $towrite .= PHP_EOL . 'item_id: ' . print_r( $item_id, TRUE);
+   			    $towrite .= PHP_EOL . 'item_id: ' . print_r( $item_type, TRUE);
+   			    $towrite .= PHP_EOL . 'group_id: ' . print_r( $group_id, TRUE);
+
+			    $fp = fopen('json_update_maps_reports.txt', 'a');
+			    fwrite($fp, $towrite);
+			    fclose($fp);
+
+			    $response = $this->json_svc_make_delete_request( $item_type, $item_id, $group_id );
+
+			    $towrite .= PHP_EOL . 'json response: ' . print_r( $response, TRUE);
+			    $fp = fopen('json_update_maps_reports.txt', 'a');
+			    fwrite($fp, $towrite);
+			    fclose($fp);
+			}
+		}
+	}
+
+	/**
+	 * Convert a mapping environment date to a WP-friendly date.
+	 *
+	 * @param    $date string Date in map-environment format.
+	 * @since    1.0.0
+	 */
+	public function convert_date_to_wp_format( $date ) {
+		// The dates on the mapping environment are stored as
+		// original: 6/24/2015 12:12:28 PM
+		// WP expects 2015-06-24 12:12:28
+
+		$shuffle = date_create_from_format( 'n/j/Y H:i:s a', $date );
+		return date_format( $shuffle, 'Y-m-d H:i:s' );
+	}
+
+
+	/* Templating *************************************************************/
 
 	/**
 	 * Get the location of the template directory.
@@ -500,10 +764,10 @@ class CC_MRAD_Public {
 	 * @since    1.0.0
 	 */
 	public function add_template_stack( $templates ) {
-	    // If we're on a page of our plugin, then we add our path to the
-	    // template path array. This allows bp_get_template_part to work.
+		// If we're on a page of our plugin, then we add our path to the
+		// template path array. This allows bp_get_template_part to work.
 
-	    $is_docs = bp_docs_is_docs_component();
+		$is_docs = bp_docs_is_docs_component();
 
 		if ( bp_is_active( 'groups' ) && bp_is_group() && bp_is_current_action( buddypress()->bp_docs->slug ) ) {
 			$is_docs = true;
@@ -511,20 +775,20 @@ class CC_MRAD_Public {
 
 		// Only continue if looking at the docs component
 		if ( $is_docs ) {
-	    	$template_directory = $this->get_template_directory();
-	    	// Add the template directory avoiding dupes
-	    	if ( ! in_array( $template_directory, $templates ) ) {
-		        $templates[] = $template_directory;
+			$template_directory = $this->get_template_directory();
+			// Add the template directory avoiding dupes
+			if ( ! in_array( $template_directory, $templates ) ) {
+				$templates[] = $template_directory;
 			}
 		}
 
 
-        $towrite = PHP_EOL . 'in add_template_stack, templates, filtered: ' . print_r( $templates, TRUE );
-        $towrite .= PHP_EOL . 'is docs?: ' . print_r( $is_docs, TRUE );
-	    $fp = fopen('filter_found_template.txt', 'a');
-        fwrite($fp, $towrite);
+		$towrite = PHP_EOL . 'in add_template_stack, templates, filtered: ' . print_r( $templates, TRUE );
+		$towrite .= PHP_EOL . 'is docs?: ' . print_r( $is_docs, TRUE );
+		$fp = fopen('filter_found_template.txt', 'a');
+		fwrite($fp, $towrite);
 
-	    return $templates;
+		return $templates;
 	}
 
 	/**
@@ -533,23 +797,23 @@ class CC_MRAD_Public {
 	 * @since    1.0.0
 	 */
 	public function filter_bp_get_template_part( $templates, $slug, $name ) {
-        $towrite = PHP_EOL . 'in filter_bp_get_template_part, templates, incoming: ' . print_r( $templates, TRUE );
-        $towrite .= PHP_EOL . 'slug: ' . print_r( $slug, TRUE );
-        $towrite .= PHP_EOL . 'name: ' . print_r( $name, TRUE );
+		$towrite = PHP_EOL . 'in filter_bp_get_template_part, templates, incoming: ' . print_r( $templates, TRUE );
+		$towrite .= PHP_EOL . 'slug: ' . print_r( $slug, TRUE );
+		$towrite .= PHP_EOL . 'name: ' . print_r( $name, TRUE );
 
-        // if ( $slug == 'docs/docs-loop' ) {
-        // 	$templates = array( 'mrad/docs-loop' );
-        // }
+		// if ( $slug == 'docs/docs-loop' ) {
+		// 	$templates = array( 'mrad/docs-loop' );
+		// }
 		// $template_directory = $this->get_template_directory();
   //       $towrite .= PHP_EOL . 'looking for: ' . print_r( $template_directory . 'docs/' . $template, TRUE );
-	    // if ( file_exists( $template_directory . 'docs/' . $template ) ) {
-	    // 	$template_path = $template_directory . 'docs/' . $template;
-	    // }
-        // $towrite .= PHP_EOL . 'template, filtered: ' . print_r( $template_path, TRUE );
-	    $fp = fopen('filter_found_template.txt', 'a');
-        fwrite($fp, $towrite);
+		// if ( file_exists( $template_directory . 'docs/' . $template ) ) {
+		// 	$template_path = $template_directory . 'docs/' . $template;
+		// }
+		// $towrite .= PHP_EOL . 'template, filtered: ' . print_r( $template_path, TRUE );
+		$fp = fopen('filter_found_template.txt', 'a');
+		fwrite($fp, $towrite);
 
-	    return $templates;
+		return $templates;
 	}
 
 	/**
@@ -591,7 +855,7 @@ class CC_MRAD_Public {
 			<?php if ( ! empty( $categories ) ) : ?>
 				<?php foreach ( $categories as $cat ) : ?>
 					<li>
-					<a href="?bpd_channel=<?php echo $cat->slug; ?>" title="<?php echo esc_html( $cat->name ) ?>"><?php echo esc_html( $cat->name  ) ?></a>
+						<?php echo $this->get_taxonomy_filter_link( 'bpd_channel', $cat ); ?>
 					</li>
 				<?php endforeach ?>
 			<?php else: ?>
@@ -601,11 +865,11 @@ class CC_MRAD_Public {
 		</div>
 
 		<div id="docs-filter-section-types" class="docs-filter-section<?php if ( $type_filter ) : ?> docs-filter-section-open<?php endif; ?>">
-			<ul id="types-list" class="no-bullets">
+			<ul id="types-list" class="no-bullets mrad-types-filter-list">
 			<?php if ( ! empty( $existing_types ) ) : ?>
 				<?php foreach ( $existing_types as $term ) : ?>
 					<li>
-					<a href="?bpd_type=<?php echo $term->slug; ?>" title="<?php echo esc_html( $term->name ) ?>"><?php echo esc_html( $term->name  ) ?></a>
+						<?php echo $this->get_taxonomy_filter_link( 'bpd_type', $term ); ?>
 					</li>
 				<?php endforeach ?>
 			<?php else: ?>
@@ -671,6 +935,51 @@ class CC_MRAD_Public {
 	}
 
 	/**
+	 * Generate taxonomy-filter links for our various directory taxonomy filters.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array $terms The item's terms
+	 */
+	function get_taxonomy_filter_link( $taxonomy_arg = 'bpd_type', $term = '' ) {
+		global $bp;
+
+		if ( bp_is_user() ) {
+			$current_action = bp_current_action();
+			if ( empty( $current_action ) || BP_DOCS_STARTED_SLUG == $current_action ) {
+				$item_docs_url = trailingslashit( bp_displayed_user_domain() . bp_docs_get_docs_slug() .  '/' . BP_DOCS_STARTED_SLUG );
+			} elseif ( BP_DOCS_EDITED_SLUG == $current_action ) {
+				$item_docs_url = trailingslashit( bp_displayed_user_domain() . bp_docs_get_docs_slug() .  '/' . BP_DOCS_EDITED_SLUG );
+			}
+		} elseif ( bp_is_group() ){
+			$item_docs_url = trailingslashit( bp_get_group_permalink() . bp_docs_get_docs_slug() );
+		} else {
+			$item_docs_url = bp_docs_get_archive_link();
+		}
+
+		$url = add_query_arg( $taxonomy_arg, urlencode( $term->slug ), $item_docs_url );
+
+		$html = '<a href="' . $url . '" title="' . sprintf( __( 'Items tagged %s', $this->plugin_name ), esc_attr( $term->name ) ) . '">';
+		if ( $taxonomy_arg == 'bpd_type' ) {
+			// Add the icons to the list in this case.
+			switch ( $term->slug ) {
+				case 'map':
+					$html .= '<span class="mapx24 icon"></span>';
+					break;
+				case 'report':
+					$html .= '<span class="reportx24 icon"></span>';
+					break;
+				default:
+					$html .= ' <span class="collaborationx24 icon"></span>';
+					break;
+			}
+		}
+		$html .= esc_html( $term->name ) . '</a>';
+
+		return apply_filters( 'cc_mrad_get_taxonomy_filter_link', $html, $url, $term, $taxonomy_arg );
+	}
+
+	/**
 	 * Prefix the title with the doc type if it's not a regular doc.
 	 *
 	 * @since 1.0.0
@@ -679,14 +988,15 @@ class CC_MRAD_Public {
 	 */
 	public function add_doc_type_to_title( $title, $post_id ) {
 
-		if ( bp_docs_is_global_directory() || bp_docs_is_mygroups_directory() ) {
+		// if ( bp_docs_is_global_directory() || bp_docs_is_mygroups_directory() ) {
+		if ( bp_docs_is_docs_component() ) {
 			$main_class = CC_MRAD::get_instance();
 			$taxonomy = $main_class->get_taxonomy_name();
 			$terms = wp_get_post_terms( $post_id, $taxonomy );
 
-		    if ( ! empty( $terms ) ) {
-		    	$term_name = current( $terms )->name;
-		    	if ( $term_name != 'Doc' ) {
+			if ( ! empty( $terms ) ) {
+				$term_name = current( $terms )->name;
+				if ( $term_name != 'Doc' ) {
 					$title = $term_name . ': ' . $title;
 				}
 			}
@@ -703,29 +1013,29 @@ class CC_MRAD_Public {
 	 * @return array $button Markup for the create button
 	 */
 	public function filter_bp_docs_create_button( $button ) {
-	    ob_start();
-	    ?>
-	    <div id="bp-create-doc-button-menu" class="bp-create-doc-button-nav-container">
-		    <ul class="nav accessible-menu no-bullets">
-		    <li class="alignright menu-item menu-item-level-0 menu-item-has-children">
-		    	<?php echo $button; ?>
-			    <div id="mrad_create_doc_options_panel" class="sub-nav">
-			    	<ul class="sub-nav-group mrad_create_doc_options_list no-bullets">
-				        <li class="menu-item">
-				        	<a href="<?php bp_docs_create_link(); ?>" title="Create a collaborative document"><span class="collaborationx24 icon"></span>Create a Collaborative Doc</a>
-				        </li>
-					    <li class="menu-item">
-					        <a href="<?php echo mrad_map_create_link_url(); ?>" title="Create a map"><span class="mapx24 icon"></span>Create a Map</a>
-					    </li>
-				        <li class="menu-item">
-					        <a href="<?php echo mrad_report_create_link_url(); ?>" title="Create a report"><span class="reportx24 icon"></span>Create a Report</a>
-					    </li>
-				    </ul>
-			    </div>
+		ob_start();
+		?>
+		<div id="bp-create-doc-button-menu" class="bp-create-doc-button-nav-container">
+			<ul class="nav accessible-menu no-bullets">
+			<li class="alignright menu-item menu-item-level-0 menu-item-has-children">
+				<?php echo $button; ?>
+				<div id="mrad_create_doc_options_panel" class="sub-nav">
+					<ul class="sub-nav-group mrad_create_doc_options_list no-bullets">
+						<li class="menu-item">
+							<a href="<?php bp_docs_create_link(); ?>" title="Create a collaborative document"><span class="collaborationx24 icon"></span>Create a Collaborative Doc</a>
+						</li>
+						<li class="menu-item">
+							<a href="<?php echo mrad_map_create_link_url(); ?>" title="Create a map"><span class="mapx24 icon"></span>Create a Map</a>
+						</li>
+						<li class="menu-item">
+							<a href="<?php echo mrad_report_create_link_url(); ?>" title="Create a report"><span class="reportx24 icon"></span>Create a Report</a>
+						</li>
+					</ul>
+				</div>
 			</li>
 			</ul>
 		</div>
-	    <?php
+		<?php
 		return ob_get_clean();
 
 		// return $button;
@@ -739,14 +1049,14 @@ class CC_MRAD_Public {
 	 * @return string Location of the template to use.
 	 */
 	public function filter_bp_docs_header_template( $template ) {
-	    // $towrite = PHP_EOL . 'incoming_template' . print_r( $template, TRUE );
-      	$template_directory = $this->get_template_directory();
-	    $template = $template_directory . "docs/docs-header.php";
+		// $towrite = PHP_EOL . 'incoming_template' . print_r( $template, TRUE );
+		$template_directory = $this->get_template_directory();
+		$template = $template_directory . "docs/docs-header.php";
 
-	    // $towrite .= PHP_EOL . 'filtered_template' . print_r( $template, TRUE );
-	    // $fp = fopen('filter_bp_docs_header_template.txt', 'a');
-	    // fwrite($fp, $towrite);
-	    // fclose($fp);
+		// $towrite .= PHP_EOL . 'filtered_template' . print_r( $template, TRUE );
+		// $fp = fopen('filter_bp_docs_header_template.txt', 'a');
+		// fwrite($fp, $towrite);
+		// fclose($fp);
 
 		return $template;
 	}
@@ -788,55 +1098,37 @@ class CC_MRAD_Public {
 				break;
 		}
 
-	    $towrite = PHP_EOL . 'doc id' . print_r( $doc_id, TRUE );
-	    $towrite .= PHP_EOL . 'filtered edit link' . print_r( $link, TRUE );
-	    // $towrite .= PHP_EOL . 'terms' . print_r( $terms, TRUE );
-	    $fp = fopen('filter_bp_docs_get_doc_edit_link.txt', 'a');
-	    fwrite($fp, $towrite);
-	    fclose($fp);
+		$towrite = PHP_EOL . 'doc id' . print_r( $doc_id, TRUE );
+		$towrite .= PHP_EOL . 'filtered edit link' . print_r( $link, TRUE );
+		// $towrite .= PHP_EOL . 'terms' . print_r( $terms, TRUE );
+		$fp = fopen('filter_bp_docs_get_doc_edit_link.txt', 'a');
+		fwrite($fp, $towrite);
+		fclose($fp);
 
 		return $link;
 	}
 
+
 	/**
-	 * Markup for the Channels <th> on the docs loop
+	 * Shows a doc's channels on the docs table view.
 	 *
 	 * @since 1.0.0
 	 */
+	function add_channels_docs_loop() {
+		$categories = wp_get_post_terms( get_the_ID(), 'category' );
+		$cat_array = array();
+		$output = '';
 
-	function channels_th() {
-		?>
+	    foreach ( $categories as $cat ) {
+	    	$cat_array[] = $this->get_taxonomy_filter_link( $taxonomy_arg = 'bpd_channel', $cat );
+	    }
 
-		<th scope="column" class="channels-cell"><?php _e( 'Channels', $this->plugin_name ); ?></th>
-
-		<?php
-	}
-
-	/**
-	 * Markup for the Channels <td> on the docs loop
-	 *
-	 * @since 1.0.0
-	 */
-	function channels_td() {
-
-		//TODO: maybe add these to the title cell instead?
-
-		$channels = get_the_terms( get_the_ID(), 'category' );
-		$output = array();
-
-		foreach ( (array) $channels as $cat ) {
-			if ( ! empty( $cat->name ) ) {
-				$output[] = '<a href="?bpd_channel=' . $cat->slug . '" title="' . esc_html( $cat->name ) . '">' . esc_html( $cat->name  ) . '</a>';
-			}
+		if ( ! empty( $cat_array ) ) {
+			$categories_list = implode( ' ', $cat_array );
+			$output .= '<span class="category-links">'. $categories_list . '</span> <br />';
 		}
 
-		?>
-
-		<td class="channels-cell">
-			<?php echo implode( ', ', $output ) ?>
-		</td>
-
-		<?php
+		echo '<footer class="entry-meta">' . $output . '</footer>';
 	}
 
 	/**
@@ -865,22 +1157,22 @@ class CC_MRAD_Public {
 								<?php
 								//wp_category_checklist( $doc_id );
 								$categories = get_terms( 'category' );
-					            $selected_cats = wp_list_pluck( get_the_terms( $doc_id, 'category' ), 'term_id' );
-					            // var_dump( $selected_cats );
-					            if ( ! empty( $categories ) ) :
-					            ?>
-						            <ul class="no-bullets horizontal">
+								$selected_cats = wp_list_pluck( get_the_terms( $doc_id, 'category' ), 'term_id' );
+								// var_dump( $selected_cats );
+								if ( ! empty( $categories ) ) :
+								?>
+									<ul class="no-bullets horizontal">
 										<?php
-										    foreach ( $categories as $category ) {
-								            	$selected_cat = in_array( $category->term_id, $selected_cats) ? true : false;
+											foreach ( $categories as $category ) {
+												$selected_cat = in_array( $category->term_id, $selected_cats) ? true : false;
 											?>
 											<li id="category-<?php echo $category->term_id; ?>"><label class="selectit"><input value="<?php echo $category->term_id; ?>" type="checkbox" name="post_category[]" id="in-category-<?php echo $category->term_id; ?>" <?php checked( $selected_cat ); ?>> <?php echo $category->name; ?></label></li>
 											<?php
 										}
 										?>
-						            </ul>
-					            <?php
-					            endif; //if ( ! empty( $categories ) )
+									</ul>
+								<?php
+								endif; //if ( ! empty( $categories ) )
 								?>
 							</td>
 						</tr>
@@ -906,52 +1198,78 @@ class CC_MRAD_Public {
 			wp_set_post_terms( $query->doc_id, $terms, 'category' );
 		}
 
-	    $towrite = PHP_EOL . '$query: ' . print_r( $query, TRUE );
-	    $towrite .= PHP_EOL . '$_POST[post_category]: ' . print_r( $_POST['post_category'], TRUE );
-	    $towrite .= PHP_EOL . '$terms: ' . print_r( $terms, TRUE );
-	    $fp = fopen('save-doc-channels.txt', 'a');
-	    fwrite($fp, $towrite);
-	    fclose($fp);
+		$towrite = PHP_EOL . '$query: ' . print_r( $query, TRUE );
+		$towrite .= PHP_EOL . '$_POST[post_category]: ' . print_r( $_POST['post_category'], TRUE );
+		$towrite .= PHP_EOL . '$terms: ' . print_r( $terms, TRUE );
+		$fp = fopen('save-doc-channels.txt', 'a');
+		fwrite($fp, $towrite);
+		fclose($fp);
+	}
+
+	/**
+	 * Shows a doc's channels on the single doc view.
+	 *
+	 * @since 1.0.0
+	 */
+	function add_channels_single_doc( $html, $tag_array ) {
+		$categories = wp_get_post_terms( get_the_ID(), 'category' );
+		$cat_array = array();
+		$output = '';
+
+	    foreach ( $categories as $cat ) {
+	    	$cat_array[] = $this->get_taxonomy_filter_link( $taxonomy_arg = 'bpd_channel', $cat );
+	    }
+
+		if ( ! empty( $cat_array ) ) {
+			$categories_list = implode( ' ', $cat_array );
+			$output .= 'Channels <span class="category-links">'. $categories_list . '</span> <br />';
+		}
+		if ( ! empty( $tag_array ) ) {
+			$tags_list = implode( ' ', $tag_array );
+			$output .= 'Tags <span class="tag-links">'. $tags_list . '</span> <br />';
+		}
+
+		return '<footer class="entry-meta">' . $output . '</footer>';
 	}
 
 	public function filter_found_template( $template_path, $that ){
-	    $towrite = PHP_EOL . 'in filter_found_template.';
-	    $towrite .= PHP_EOL . '$template_path: ' . print_r( $template_path, TRUE );
-	    $towrite .= PHP_EOL . '$that: ' . print_r( $that, TRUE );
-	    $fp = fopen('filter_found_template.txt', 'a');
-	    fwrite($fp, $towrite);
-	    fclose($fp);
+		$towrite = PHP_EOL . 'in filter_found_template.';
+		$towrite .= PHP_EOL . '$template_path: ' . print_r( $template_path, TRUE );
+		$towrite .= PHP_EOL . '$that: ' . print_r( $that, TRUE );
+		$fp = fopen('filter_found_template.txt', 'a');
+		fwrite($fp, $towrite);
+		fclose($fp);
 
-	    return $template_path;
+		return $template_path;
 	}
 
 	public function filter_bp_docs_locate_template( $template_path, $template ) {
-	    $towrite = PHP_EOL . 'in filter_bp_docs_locate_template.';
-	    $towrite .= PHP_EOL . '$template_path: ' . print_r( $template_path, TRUE );
-	    $towrite .= PHP_EOL . '$that: ' . print_r( $that, TRUE );
-	    $fp = fopen('filter_found_template.txt', 'a');
-	    fwrite($fp, $towrite);
-	    fclose($fp);
+		$towrite = PHP_EOL . 'in filter_bp_docs_locate_template.';
+		$towrite .= PHP_EOL . '$template_path: ' . print_r( $template_path, TRUE );
+		$towrite .= PHP_EOL . '$that: ' . print_r( $that, TRUE );
+		$fp = fopen('filter_found_template.txt', 'a');
+		fwrite($fp, $towrite);
+		fclose($fp);
 
-	    return $template_path;
+		return $template_path;
 	}
 
 	public function filter_bp_docs_template_include( $template ) {
-	    $towrite = PHP_EOL . 'in filter_bp_docs_template_include.';
-	    $towrite .= PHP_EOL . '$template: ' . print_r( $template, TRUE );
-	    $fp = fopen('filter_found_template.txt', 'a');
-	    fwrite($fp, $towrite);
-	    fclose($fp);
+		$towrite = PHP_EOL . 'in filter_bp_docs_template_include.';
+		$towrite .= PHP_EOL . '$template: ' . print_r( $template, TRUE );
+		$fp = fopen('filter_found_template.txt', 'a');
+		fwrite($fp, $towrite);
+		fclose($fp);
 
-	    return $template;
+		return $template;
 	}
 
 	public function filter_bp_docs_get_the_content( $content ) {
 		$doc = get_queried_object();
 
 		if ( ! empty( $doc ) ) {
-			$mrad_class = CC_MRAD::get_instance();
-			$terms = wp_get_object_terms( $doc->ID, $mrad_class->get_taxonomy_name() );
+			// $mrad_class = CC_MRAD::get_instance();
+			$terms = wp_get_object_terms( $doc->ID, $this->type_taxonomy_name );
 			$item_type = '';
 			$meta_query_key = '';
 
@@ -959,35 +1277,48 @@ class CC_MRAD_Public {
 				$item_type = current( $terms )->slug;
 				switch ( $item_type ) {
 					case 'map':
-				        // $meta_query_key = 'map_table_ID';
-				        $item_id = get_post_meta( $doc->ID, 'map_table_ID', true );
-				        break;
-				    case 'report':
-					    $meta_query_key = 'report_table_ID';
+						// $meta_query_key = 'map_table_ID';
+						// $item_id = get_post_meta( $doc->ID, 'map_table_ID', true );
+
+						// We add a map widget container above the post content.
+						$widget = '<div id="map-widget-container" ></div>';
+						$content = $widget . '<br /> ' . $content;
+						break;
+					case 'report':
+						// $meta_query_key = 'report_table_ID';
+
+						// We'll need to fetch the item details to generate the "open report" link.
+						$item_id = get_post_meta( $doc->ID, 'report_table_ID', true );
+						$item = $this->get_single_map_report( $item_id, $item_type );
+
+						if ( ! empty( $item ) ) {
+							if ( $item['reportType'] == 'PDF' ) {
+								$button_text = __( 'View PDF', $this->plugin_name );
+							} elseif ( $item['reportType'] == 'Word' ) {
+								// @TODO: I'm not sure about this, since I can't save a Word doc
+								$button_text = __( 'Download Word Doc', $this->plugin_name );
+							} else {
+								$button_text = __( 'Open Report', $this->plugin_name );
+							}
+
+							$report_link = '<a href="' . $item['link'] . '" title="Link to report" class="button report-link"><span class="icon reportx24"></span>' . $button_text . '</a>';
+							$content = $report_link . '<br /> ' . $content;
+
+						}
+
 					default:
 						$meta_query_key = '';
 						break;
 				}
 			}
-
-			if ( 'map' == $item_type ) {
-				// We add a map widget above the post content.
-				// $widget = '<script  id="map_widget_generator" src="http://maps.communitycommons.org/jscripts/mapWidget.js?mapid='. $item_id . '&style=responsive"></script>';
-				$widget = '<div id="map-widget-container" ></div>';
-				$content = $widget . '<br /> ' . $content;
-
-			} elseif ( 'report' == $item_type ) {
-				# code...
-			}
-
 		}
 
-	    // $towrite = PHP_EOL . 'in filter_bp_docs_get_the_content.';
-	    // $towrite .= PHP_EOL . '$doc object: ' . print_r( $doc, TRUE );
-	    // $towrite .= PHP_EOL . '$terms object: ' . print_r( $terms, TRUE );
-	    // $fp = fopen('bp-docs-templating.txt', 'a');
-	    // fwrite($fp, $towrite);
-	    // fclose($fp);
+		// $towrite = PHP_EOL . 'in filter_bp_docs_get_the_content.';
+		// $towrite .= PHP_EOL . '$doc object: ' . print_r( $doc, TRUE );
+		// $towrite .= PHP_EOL . '$terms object: ' . print_r( $terms, TRUE );
+		// $fp = fopen('bp-docs-templating.txt', 'a');
+		// fwrite($fp, $towrite);
+		// fclose($fp);
 		return $content;
 	}
 
@@ -996,8 +1327,8 @@ class CC_MRAD_Public {
 		$output = '';
 
 		if ( ! empty( $doc_id ) ) {
-			$mrad_class = CC_MRAD::get_instance();
-			$terms = wp_get_object_terms( $doc_id, $mrad_class->get_taxonomy_name() );
+			// $mrad_class = CC_MRAD::get_instance();
+			$terms = wp_get_object_terms( $doc_id, $this->type_taxonomy_name );
 			$item_type = '';
 			$meta_query_key = '';
 
@@ -1005,11 +1336,11 @@ class CC_MRAD_Public {
 				$item_type = current( $terms )->slug;
 				switch ( $item_type ) {
 					case 'map':
-				        // $meta_query_key = 'map_table_ID';
-				        $item_id = get_post_meta( $doc_id, 'map_table_ID', true );
-				        break;
-				    case 'report':
-					    $meta_query_key = 'report_table_ID';
+						// $meta_query_key = 'map_table_ID';
+						$item_id = get_post_meta( $doc_id, 'map_table_ID', true );
+						break;
+					case 'report':
+						$meta_query_key = 'report_table_ID';
 					default:
 						$meta_query_key = '';
 						break;
