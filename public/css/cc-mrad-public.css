@@ -8,8 +8,9 @@
     float: right;
 }
 
-#buddypress .mrad_create_doc_options_list li {
+#buddypress #bp-docs-all-docs .mrad_create_doc_options_list li {
     margin: 0;
+    width: 100%;
 }
 .item-list-tabs #bp-docs-all-docs .bp-create-doc-button-nav-container ul {
     border-bottom: 0;
@@ -20,17 +21,25 @@
     width: 17em;
 }
 
-.bp-create-doc-button-nav-container .accessible-menu .sub-nav .sub-nav-group a {
-    padding: 0 0.6em;
-}
 
 .bp-create-doc-button-nav-container .accessible-menu .sub-nav:after,
 .bp-create-doc-button-nav-container .accessible-menu .sub-nav:before {
     left: 55%;
 }
-.bp-create-doc-button-nav-container .sub-nav a {
+#buddypress #bp-create-doc-button {
+    padding-right: 26px;
+}
+#subnav .bp-create-doc-button-nav-container .accessible-menu .sub-nav .sub-nav-group li {
+    width: 100%;
+    margin-right: 0;
+}
+#subnav .bp-create-doc-button-nav-container .accessible-menu .sub-nav .sub-nav-group a {
+    padding: 0 0.6em;
     display: inline-block;
     vertical-align: middle;
+    width: 93%;
+}
+.bp-create-doc-button-nav-container .sub-nav a {
 }
 .bp-create-doc-button-nav-container .icon {
     display: inline-block;
@@ -38,6 +47,7 @@
     background-color: #FFF;
     border-radius: 0;
     margin-right: .6em;
+    padding: 0;
 }
 
 .doc-content .cc-map-widget img {
@@ -46,9 +56,45 @@
 .doc-content .map-widget-data {
     display: none;
 }
+.doc-content .report-link {
+    margin-bottom: 1.2em;
+}
+.doc-content .reportx24 {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: .4em;
+}
 
 #subnav.item-list-tabs .bp-create-doc-button-nav-container ul {
     border-bottom: 0;
+}
+
+.mrad-types-filter-list .icon {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: .8em;
+}
+
+/* Adjustments to the document table view*/
+.doctable footer.entry-meta {
+    margin-top: 0
+}
+.doctable .doc-excerpt p {
+    margin-bottom: .5em;
+}
+
+#buddypress table.doctable .title-cell footer.entry-meta .category-links a {
+    font-size: .9rem;
+    line-height: 1.8;
+    background-color: white;
+    border: 1px solid #ccc;
+    color: #008EAA;
+    transition: all .3s ease;
+}
+#buddypress table.doctable .title-cell footer.entry-meta .category-links a:hover {
+    color: white;
+    background-color: #008EAA;
+    border-color: #008EAA;
 }
 
 .ie7 .bp-create-doc-button-nav-container,

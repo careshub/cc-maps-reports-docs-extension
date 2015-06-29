@@ -244,8 +244,19 @@ class CC_MRAD {
 
 		// Add our templates to BuddyPress' template stack.
 		// Then, any templates that are specified using `bp_buffer_template_part()` in bp-docs will
-		// be overridden by the same tempalte file in our template folder.
+		// be overridden by the same template file in our template folder.
 		add_filter( 'bp_get_template_stack', array( $plugin_public, 'add_template_stack'), 10, 1 );
+
+		// Maps and reports don't have a "trash" analog, so when one is deleted, we really delete it here, too.
+		add_action( 'bp_docs_doc_deleted', array( $plugin_public, 'permanently_delete_maps_reports') );
+
+		// When a doc is deleted, if it's a map or report, we have to ping the map/report environment, too.
+		// We're not deleting items here. Deletes should happen on map/report env.
+		// add_action( 'delete_post', array( $plugin_public, 'ping_map_env_on_doc_delete') );
+
+		// When a doc is removed from a group, ping the maps/reports environment
+		add_action( 'bp_docs_doc_unlinked_from_group', array( $plugin_public, 'ping_map_env_on_doc_unlink_from_group'), 10, 2 );
+
 
 		// Template tracing. I think our bp_get_template_stack filter will do most of the work.
 		// add_filter( 'bp_docs_locate_template', array( $plugin_public, 'filter_bp_docs_locate_template'), 34, 2 );
@@ -258,7 +269,9 @@ class CC_MRAD {
 		// add_filter( 'bp_docs_header_template', array( $plugin_public, 'filter_bp_docs_header_template' ), 10, 1 );
 
 		// If type is a map or report, we show the map or report with the description below.
+		// Add a target div for the map to be built in.
 		add_filter( 'bp_docs_get_the_content', array( $plugin_public, 'filter_bp_docs_get_the_content' ) );
+		// Create the map target url and add it to the page as a js variable for use by other js.
 		add_action( 'bp_docs_after_doc_content', array( $plugin_public, 'add_map_widget_injector' ) );
 
 		// Add the "types" filter markup
@@ -272,14 +285,17 @@ class CC_MRAD {
 		// Add a submenu to the docs create button
 		add_filter( 'bp_docs_create_button', array( $plugin_public, 'filter_bp_docs_create_button' ), 10, 1 );
 
-		// Add a "Channels" column to the docs loop
-		add_filter( 'bp_docs_loop_additional_th', array( $plugin_public, 'channels_th' ) );
-		add_filter( 'bp_docs_loop_additional_td', array( $plugin_public, 'channels_td' ) );
+		// Add "Channels" output to the docs-loop title cell
+		add_action( 'bp_docs_loop_after_doc_excerpt', array( $plugin_public, 'add_channels_docs_loop' ) );
 
 		// Add a "Channels" meta box to the docs edit screen
 		add_action( 'bp_docs_after_tags_meta_box', array( $plugin_public, 'docs_edit_channels_metabox' ), 10, 1 );
 		// Save channel selections from doc edit screen.
 		add_action( 'bp_docs_doc_saved', array( $plugin_public, 'save_channel_selection' ) );
+
+		// Display a doc's channels on its single doc page
+		add_filter( 'bp_docs_taxonomy_show_terms', 	array( $plugin_public, 'add_channels_single_doc' ), 10, 2 );
+
 
 		// @TODO: Scope these
 		add_action( 'wp_enqueue_scripts', array( $plugin_public, 'enqueue_styles') );
@@ -288,15 +304,9 @@ class CC_MRAD {
 		add_filter( 'bp_docs_get_doc_edit_link', array( $plugin_public, 'filter_bp_docs_get_doc_edit_link') );
 
 
-
-		// add our callback to both ajax actions.
-		// add_action( "wp_ajax_ccgp_get_page_details", array( $plugin_public, "ajax_update_item" ) );
-		// add_action( "wp_ajax_nopriv_ccgp_get_page_details", array( $plugin_public, "ajax_update_item" ) );
-		// add_action( "wp_ajax_ccgp_get_page_order", array( $plugin_public, "ccgp_ajax_retrieve_page_order" ) );
-		// add_action( "wp_ajax_nopriv_ccgp_get_page_order", array( $plugin_public, "ccgp_ajax_retrieve_page_order" ) );
-
-
-
+		// Add a way to get the possible map categories via JSON.
+		add_action( 'wp_ajax_nopriv_cc-json-get-map-categories', array( $plugin_public, 'json_get_map_categories' ) );
+		add_action( 'wp_ajax_cc-json-get-map-categories', array( $plugin_public, 'json_get_map_categories' ) );
 
 	}
 

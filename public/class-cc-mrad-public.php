@@ -1350,7 +1350,7 @@ class CC_MRAD_Public {
 			if ( 'map' == $item_type ) {
 				// We add a map widget above the post content.
 				$output = '<script type="text/javascript">
-				var base_map_widget_src = "http://maps.communitycommons.org/jscripts/mapWidget.js?mapid='. $item_id . '&style=responsive";
+				var base_map_widget_src = "' . mrad_map_base_url() . 'jscripts/mapWidget.js?mapid='. $item_id . '&style=responsive";
 				</script>';
 			} elseif ( 'report' == $item_type ) {
 				# code...
