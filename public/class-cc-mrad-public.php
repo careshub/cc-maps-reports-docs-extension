@@ -1108,6 +1108,31 @@ class CC_MRAD_Public {
 		return $link;
 	}
 
+	/**
+	 * Shows a doc's channels on the single doc view.
+	 *
+	 * @since 1.0.0
+	 */
+	function add_channels_single_doc( $html, $tag_array ) {
+		$categories = wp_get_post_terms( get_the_ID(), 'category' );
+		$cat_array = array();
+		$output = '';
+
+	    foreach ( $categories as $cat ) {
+	    	$cat_array[] = $this->get_taxonomy_filter_link( $taxonomy_arg = 'bpd_channel', $cat );
+	    }
+
+		if ( ! empty( $cat_array ) ) {
+			$categories_list = implode( ' ', $cat_array );
+			$output .= 'Channels <span class="category-links">'. $categories_list . '</span> <br />';
+		}
+		if ( ! empty( $tag_array ) ) {
+			$tags_list = implode( ' ', $tag_array );
+			$output .= 'Tags <span class="tag-links">'. $tags_list . '</span> <br />';
+		}
+
+		return '<footer class="entry-meta">' . $output . '</footer>';
+	}
 
 	/**
 	 * Shows a doc's channels on the docs table view.
@@ -1129,6 +1154,22 @@ class CC_MRAD_Public {
 		}
 
 		echo '<footer class="entry-meta">' . $output . '</footer>';
+	}
+
+	/**
+	 * Shows a doc's channels on the docs table view.
+	 *
+	 * @since 1.0.0
+	 */
+	function change_tags_output( $html, $tag_array ) {
+
+		if ( ! empty( $tag_array ) ) {
+			$tags_list = implode( ' ', $tag_array );
+			$html = '<div class="entry-meta"><span class="tag-links">'. $tags_list . '</span></div>';
+		}
+
+		// return '<div class="entry-meta">' . $output . '</div>';
+		return $html;
 	}
 
 	/**
@@ -1204,32 +1245,6 @@ class CC_MRAD_Public {
 		$fp = fopen('save-doc-channels.txt', 'a');
 		fwrite($fp, $towrite);
 		fclose($fp);
-	}
-
-	/**
-	 * Shows a doc's channels on the single doc view.
-	 *
-	 * @since 1.0.0
-	 */
-	function add_channels_single_doc( $html, $tag_array ) {
-		$categories = wp_get_post_terms( get_the_ID(), 'category' );
-		$cat_array = array();
-		$output = '';
-
-	    foreach ( $categories as $cat ) {
-	    	$cat_array[] = $this->get_taxonomy_filter_link( $taxonomy_arg = 'bpd_channel', $cat );
-	    }
-
-		if ( ! empty( $cat_array ) ) {
-			$categories_list = implode( ' ', $cat_array );
-			$output .= 'Channels <span class="category-links">'. $categories_list . '</span> <br />';
-		}
-		if ( ! empty( $tag_array ) ) {
-			$tags_list = implode( ' ', $tag_array );
-			$output .= 'Tags <span class="tag-links">'. $tags_list . '</span> <br />';
-		}
-
-		return '<footer class="entry-meta">' . $output . '</footer>';
 	}
 
 	public function filter_found_template( $template_path, $that ){

@@ -97,6 +97,12 @@
     border-color: #008EAA;
 }
 
+/*Control the breadcrumb display*/
+.bp-docs.buddypress .site-content .directory-title {
+    font-size: 1rem;
+    margin-top: 0;
+}
+
 .ie7 .bp-create-doc-button-nav-container,
 .ie8 .bp-create-doc-button-nav-container {
     float: right;

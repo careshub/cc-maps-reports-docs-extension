@@ -287,6 +287,8 @@ class CC_MRAD {
 
 		// Add "Channels" output to the docs-loop title cell
 		add_action( 'bp_docs_loop_after_doc_excerpt', array( $plugin_public, 'add_channels_docs_loop' ) );
+		// Modify tags output on docs-loop
+		add_filter( 'bp_docs_taxonomy_tags_td_content', array( $plugin_public, 'change_tags_output' ), 10, 2 );
 
 		// Add a "Channels" meta box to the docs edit screen
 		add_action( 'bp_docs_after_tags_meta_box', array( $plugin_public, 'docs_edit_channels_metabox' ), 10, 1 );
