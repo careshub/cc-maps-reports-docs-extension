@@ -634,7 +634,7 @@ class CC_MRAD_Public {
 	    fwrite($fp, $towrite);
 	    fclose($fp);
 
-		if ( ! empty( $doc_id ) ) {
+		if ( empty( $doc_id ) ) {
 			return;
 		}
 
@@ -666,7 +666,7 @@ class CC_MRAD_Public {
 
 			// If the item_id has been set, this is a type we should delete.
 			if ( $item_id ) {
-				$deleted = wp_delete_post( $doc_id, false );
+				$deleted = wp_delete_post( $doc_id );
 			    $towrite = PHP_EOL . 'success piggyback permanent deletion of ' . print_r( $doc_id, TRUE) . ': ' . print_r( $deleted, TRUE);
 			    $fp = fopen('json_update_maps_reports.txt', 'a');
 			    fwrite($fp, $towrite);
