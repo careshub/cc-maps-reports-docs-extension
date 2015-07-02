@@ -313,6 +313,9 @@ class CC_MRAD {
 		add_action( 'wp_ajax_nopriv_cc-json-get-map-categories', array( $plugin_public, 'json_get_map_categories' ) );
 		add_action( 'wp_ajax_cc-json-get-map-categories', array( $plugin_public, 'json_get_map_categories' ) );
 
+		// Modify the displayed genericon when the doc is a map or report.
+		add_filter( 'bp_docs_get_genericon', array( $plugin_public, 'filter_bp_docs_get_genericon' ), 10, 3 );
+
 	}
 
 	/**

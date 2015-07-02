@@ -984,12 +984,14 @@ class CC_MRAD_Public {
 	 *
 	 * @since 1.0.0
 	 *
+	 * @param $title The title of the post
+	 * @param $post_id The post's ID.
+	 *
 	 * @return array $terms The item's terms
 	 */
 	public function add_doc_type_to_title( $title, $post_id ) {
 
-		// if ( bp_docs_is_global_directory() || bp_docs_is_mygroups_directory() ) {
-		if ( bp_docs_is_docs_component() ) {
+		if ( bp_docs_get_post_type_name() == get_post_type( $post_id ) ) {
 			$main_class = CC_MRAD::get_instance();
 			$taxonomy = $main_class->get_taxonomy_name();
 			$terms = wp_get_post_terms( $post_id, $taxonomy );
@@ -1003,6 +1005,36 @@ class CC_MRAD_Public {
 		}
 
 		return $title;
+	}
+
+	/**
+	 * Change the doc's genericon if it's not a regular doc.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $icon_markup The genericon string of the icon.
+	 * @param string $glyph_name The genericon id of the icon.
+	 * @param string $object_id The ID of the object we're genericoning.
+	 *
+	 * @return string $icon_markup The genericon string of the icon.
+	 */
+	public function filter_bp_docs_get_genericon( $icon_markup, $glyph_name, $object_id ) {
+		if ( bp_docs_get_post_type_name() == get_post_type( $object_id ) ) {
+			$main_class = CC_MRAD::get_instance();
+			$taxonomy = $main_class->get_taxonomy_name();
+			$terms = wp_get_post_terms( $object_id, $taxonomy );
+
+			if ( ! empty( $terms ) ) {
+				$term_name = current( $terms )->name;
+				if ( $term_name == 'Map' ) {
+					$icon_markup = '<i class="genericon genericon-website"></i>';
+				} elseif ( $term_name == 'Report' ) {
+					$icon_markup = '<i class="genericon genericon-summary"></i>';
+				}
+			}
+		}
+
+		return $icon_markup;
 	}
 
 	/**
