@@ -549,7 +549,7 @@ class CC_MRAD_Public {
 						// wp_set_object_terms() needs a slug or id, though, so we'll have to
 						// translate the terms names to ids.
 						$category_ids = array();
-						foreach ($item['channel'] as $cat_name) {
+						foreach ( $item['channel'] as $cat_name ) {
 							$category = get_term_by( 'name', $cat_name, 'category' );
 							if ( ! empty( $category ) ) {
 								$category_ids[] = (int) $category->term_id;
@@ -558,6 +558,23 @@ class CC_MRAD_Public {
 						$towrite .= PHP_EOL . 'processed categories: ' . print_r( $category_ids, TRUE );
 
 						wp_set_object_terms( $post_id, $category_ids, 'category' );
+					}
+
+					if ( isset( $item['featured'] ) ) {
+						$towrite .= PHP_EOL . 'item[featured]: ' . print_r( $item['featured'], TRUE );
+
+						if ( $item['featured'] ) {
+							update_post_meta( $post_id, 'mrad_featured', true );
+							$towrite .= PHP_EOL . 'setting featured meta.';
+						} else {
+							$is_featured = get_post_meta( $post_id, 'mrad_featured', true );
+							$towrite .= PHP_EOL . 'was featured: ' . print_r( $is_featured, TRUE );
+
+							if ( $is_featured ) {
+								delete_post_meta( $post_id, 'mrad_featured' );
+								$towrite .= PHP_EOL . 'deleting featured meta.';
+							}
+						}
 					}
 
 					$fp = fopen('json_update_maps_reports.txt', 'a');
@@ -1019,6 +1036,7 @@ class CC_MRAD_Public {
 	 * @return string $icon_markup The genericon string of the icon.
 	 */
 	public function filter_bp_docs_get_genericon( $icon_markup, $glyph_name, $object_id ) {
+		//TODO: Could also only modify $glyph name = document.
 		if ( bp_docs_get_post_type_name() == get_post_type( $object_id ) ) {
 			$main_class = CC_MRAD::get_instance();
 			$taxonomy = $main_class->get_taxonomy_name();
@@ -1262,7 +1280,6 @@ class CC_MRAD_Public {
 	 * @since 1.0.0
 	 *
 	 */
-
 	public function save_channel_selection( $query ) {
 		// Separate out the terms
 		$terms = ! empty( $_POST['post_category'] ) ? array_map( 'intval', $_POST['post_category'] ) : array();
@@ -1277,6 +1294,21 @@ class CC_MRAD_Public {
 		$fp = fopen('save-doc-channels.txt', 'a');
 		fwrite($fp, $towrite);
 		fclose($fp);
+	}
+
+	/**
+	 * Apply the "standard" type to non-report and non-map docs.
+	 * At the point in the save cycle of the `bp_docs_doc_saved` action, we don't
+	 * know what kind of doc we're working with. We'll set "doc" for all docs,
+	 * and unset it if the doc is a map or report.
+	 *
+	 * @since 1.0.0
+	 *
+	 */
+	public function save_doc_type( $query ) {
+
+		wp_set_object_terms( $query->doc_id, 'doc', $this->type_taxonomy_name );
+
 	}
 
 	public function filter_found_template( $template_path, $that ){
