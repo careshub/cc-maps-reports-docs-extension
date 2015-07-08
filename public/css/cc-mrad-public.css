@@ -69,10 +69,32 @@
     border-bottom: 0;
 }
 
+.docs-filter-section ul.no-bullets {
+    margin-bottom: 0;
+}
 .mrad-types-filter-list .icon {
     display: inline-block;
     vertical-align: middle;
     margin-right: .8em;
+}
+
+.docs-filter-section .category-links a {
+    background-color: #2cbdda;
+    border-radius: 12px;
+    color: #fff;
+    display: inline-block;
+    font-size: 0.9rem;
+    line-height: 1.8;
+    margin-bottom: 0.6rem;
+    padding: 0 0.8em;
+    transition: all 0.3s ease 0s;
+}
+.docs-filter-section .category-links a:visited {
+    color: #fff;
+}
+.docs-filter-section .category-links a:hover {
+    background-color: #008eaa;
+    color: #fff;
 }
 
 /* Adjustments to the document table view*/
@@ -101,6 +123,21 @@
 .bp-docs.buddypress .site-content .directory-title {
     font-size: 1rem;
     margin-top: 0;
+}
+
+.docs-list .doc-title {
+    margin: 0 0 0 -28px;
+}
+.doc-title .icon {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 0.3em;
+}
+.docs-list .doc-excerpt p {
+    margin-bottom: .5em;
+}
+.docs-list footer.entry-meta {
+    margin-top: 0
 }
 
 .ie7 .bp-create-doc-button-nav-container,
