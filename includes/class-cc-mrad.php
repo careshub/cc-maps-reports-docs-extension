@@ -242,11 +242,6 @@ class CC_MRAD {
 		// add_action( 'wp_ajax_nopriv_cc-update-maps-reports', array( $plugin_public, 'json_update_maps_reports' ) );
 		add_action( 'wp_ajax_cc-update-maps-reports', array( $plugin_public, 'json_update_maps_reports' ) );
 
-		// Add our templates to BuddyPress' template stack.
-		// Then, any templates that are specified using `bp_buffer_template_part()` in bp-docs will
-		// be overridden by the same template file in our template folder.
-		// add_filter( 'bp_get_template_stack', array( $plugin_public, 'add_template_stack'), 10, 1 );
-
 		// Maps and reports don't have a "trash" analog, so when one is deleted, we really delete it here, too.
 		add_action( 'bp_docs_doc_deleted', array( $plugin_public, 'permanently_delete_maps_reports') );
 
@@ -256,17 +251,6 @@ class CC_MRAD {
 
 		// When a doc is removed from a group, ping the maps/reports environment
 		add_action( 'bp_docs_doc_unlinked_from_group', array( $plugin_public, 'ping_map_env_on_doc_unlink_from_group'), 10, 2 );
-
-
-		// Template tracing. I think our bp_get_template_stack filter will do most of the work.
-		// add_filter( 'bp_docs_locate_template', array( $plugin_public, 'filter_bp_docs_locate_template'), 34, 2 );
-		// add_filter( 'bp_get_template_part', array( $plugin_public, 'filter_bp_get_template_part'), 10, 3 );
-				// add_filter( 'bp_docs_template', array( $plugin_public, 'filter_found_template'), 34, 2 );
-		// add_filter( 'bp_docs_template_include', array( $plugin_public, 'filter_bp_docs_template_include') );
-
-		// The docs_header.php template location is handled via a direct filter rather than through bp_get_template_part().
-		// I don't think we'll need to override it, but leaving here for later.
-		// add_filter( 'bp_docs_header_template', array( $plugin_public, 'filter_bp_docs_header_template' ), 10, 1 );
 
 		// If type is a map or report, we show the map or report with the description below.
 		// Add a target div for the map to be built in.
@@ -298,6 +282,8 @@ class CC_MRAD {
 		// Display a doc's channels on its single doc page
 		add_filter( 'bp_docs_taxonomy_show_terms', 	array( $plugin_public, 'add_channels_single_doc' ), 10, 2 );
 
+		// If a doc is a "standard" doc, save the appropriate type term.
+		add_action( 'bp_docs_doc_saved', array( $plugin_public, 'save_doc_type' ) );
 
 		// @TODO: Scope these
 		add_action( 'wp_enqueue_scripts', array( $plugin_public, 'enqueue_styles') );

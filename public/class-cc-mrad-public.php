@@ -641,6 +641,8 @@ class CC_MRAD_Public {
 	 * we really delete it here, too.
 	 *
 	 * @since 1.0.0
+	 *
+	 * @param array $delete_args Info about deleted doc.
 	 */
 	public function permanently_delete_maps_reports( $delete_args ) {
 		$doc_id = $delete_args['ID'];
@@ -704,6 +706,9 @@ class CC_MRAD_Public {
 	 * we really delete it here, too.
 	 *
 	 * @since 1.0.0
+	 *
+	 * @param int $doc_id ID of affected doc.
+	 * @param int $group_id ID of group that the doc is being removed from.
 	 */
 	public function ping_map_env_on_doc_unlink_from_group( $doc_id, $group_id ) {
 		// $mrad_class = CC_MRAD::get_instance();
@@ -748,8 +753,9 @@ class CC_MRAD_Public {
 	/**
 	 * Convert a mapping environment date to a WP-friendly date.
 	 *
-	 * @param    $date string Date in map-environment format.
 	 * @since    1.0.0
+	 *
+	 * @param    $date string Date in map-environment format.
 	 */
 	public function convert_date_to_wp_format( $date ) {
 		// The dates on the mapping environment are stored as
@@ -776,67 +782,11 @@ class CC_MRAD_Public {
 	}
 
 	/**
-	 * Add our templates to BuddyPress' template stack.
-	 *
-	 * @since    1.0.0
-	 */
-	public function add_template_stack( $templates ) {
-		// If we're on a page of our plugin, then we add our path to the
-		// template path array. This allows bp_get_template_part to work.
-
-		$is_docs = bp_docs_is_docs_component();
-
-		if ( bp_is_active( 'groups' ) && bp_is_group() && bp_is_current_action( buddypress()->bp_docs->slug ) ) {
-			$is_docs = true;
-		}
-
-		// Only continue if looking at the docs component
-		if ( $is_docs ) {
-			$template_directory = $this->get_template_directory();
-			// Add the template directory avoiding dupes
-			if ( ! in_array( $template_directory, $templates ) ) {
-				$templates[] = $template_directory;
-			}
-		}
-
-
-		$towrite = PHP_EOL . 'in add_template_stack, templates, filtered: ' . print_r( $templates, TRUE );
-		$towrite .= PHP_EOL . 'is docs?: ' . print_r( $is_docs, TRUE );
-		$fp = fopen('filter_found_template.txt', 'a');
-		fwrite($fp, $towrite);
-
-		return $templates;
-	}
-
-	/**
-	 * Add our templates to BuddyPress' template stack.
-	 *
-	 * @since    1.0.0
-	 */
-	public function filter_bp_get_template_part( $templates, $slug, $name ) {
-		$towrite = PHP_EOL . 'in filter_bp_get_template_part, templates, incoming: ' . print_r( $templates, TRUE );
-		$towrite .= PHP_EOL . 'slug: ' . print_r( $slug, TRUE );
-		$towrite .= PHP_EOL . 'name: ' . print_r( $name, TRUE );
-
-		// if ( $slug == 'docs/docs-loop' ) {
-		// 	$templates = array( 'mrad/docs-loop' );
-		// }
-		// $template_directory = $this->get_template_directory();
-  //       $towrite .= PHP_EOL . 'looking for: ' . print_r( $template_directory . 'docs/' . $template, TRUE );
-		// if ( file_exists( $template_directory . 'docs/' . $template ) ) {
-		// 	$template_path = $template_directory . 'docs/' . $template;
-		// }
-		// $towrite .= PHP_EOL . 'template, filtered: ' . print_r( $template_path, TRUE );
-		$fp = fopen('filter_found_template.txt', 'a');
-		fwrite($fp, $towrite);
-
-		return $templates;
-	}
-
-	/**
 	 * Adds the toggle for the doc types filter links container on the docs loop.
 	 *
 	 * @since 1.0.0
+	 *
+ 	 * @param array $types Filter descriptions for docs list archive filters.
 	 */
 	public function add_filter_toggle( $types ) {
 		$types[] = array(
@@ -856,6 +806,8 @@ class CC_MRAD_Public {
 	 * Creates the markup for the doc types filter links on the docs loop.
 	 *
 	 * @since 1.0.0
+	 *
+	 * @return string html for filter controls.
 	 */
 	public function filter_markup() {
 		$main_class = CC_MRAD::get_instance();
@@ -868,7 +820,7 @@ class CC_MRAD_Public {
 
 		?>
 		<div id="docs-filter-section-channels" class="docs-filter-section<?php if ( $channel_filter ) : ?> docs-filter-section-open<?php endif; ?>">
-			<ul id="channel-list" class="no-bullets">
+			<ul id="channel-list" class="no-bullets horizontal category-links">
 			<?php if ( ! empty( $categories ) ) : ?>
 				<?php foreach ( $categories as $cat ) : ?>
 					<li>
@@ -882,7 +834,7 @@ class CC_MRAD_Public {
 		</div>
 
 		<div id="docs-filter-section-types" class="docs-filter-section<?php if ( $type_filter ) : ?> docs-filter-section-open<?php endif; ?>">
-			<ul id="types-list" class="no-bullets mrad-types-filter-list">
+			<ul id="types-list" class="no-bullets horizontal mrad-types-filter-list">
 			<?php if ( ! empty( $existing_types ) ) : ?>
 				<?php foreach ( $existing_types as $term ) : ?>
 					<li>
@@ -903,7 +855,8 @@ class CC_MRAD_Public {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return array $terms The item's terms
+	 * @param array $tax_query a WP-ready tax_query array.
+	 * @return array $tax_query a WP-ready tax_query array.
 	 */
 	public function types_query_filter( $tax_query ) {
 		$main_class = CC_MRAD::get_instance();
@@ -1003,7 +956,6 @@ class CC_MRAD_Public {
 	 *
 	 * @param $title The title of the post
 	 * @param $post_id The post's ID.
-	 *
 	 * @return array $terms The item's terms
 	 */
 	public function add_doc_type_to_title( $title, $post_id ) {
@@ -1032,22 +984,33 @@ class CC_MRAD_Public {
 	 * @param string $icon_markup The genericon string of the icon.
 	 * @param string $glyph_name The genericon id of the icon.
 	 * @param string $object_id The ID of the object we're genericoning.
-	 *
 	 * @return string $icon_markup The genericon string of the icon.
 	 */
 	public function filter_bp_docs_get_genericon( $icon_markup, $glyph_name, $object_id ) {
 		//TODO: Could also only modify $glyph name = document.
 		if ( bp_docs_get_post_type_name() == get_post_type( $object_id ) ) {
-			$main_class = CC_MRAD::get_instance();
-			$taxonomy = $main_class->get_taxonomy_name();
-			$terms = wp_get_post_terms( $object_id, $taxonomy );
+			// $main_class = CC_MRAD::get_instance();
+			// $taxonomy = $main_class->get_taxonomy_name();
+			$terms = wp_get_post_terms( $object_id, $this->type_taxonomy_name);
 
 			if ( ! empty( $terms ) ) {
-				$term_name = current( $terms )->name;
-				if ( $term_name == 'Map' ) {
-					$icon_markup = '<i class="genericon genericon-website"></i>';
-				} elseif ( $term_name == 'Report' ) {
-					$icon_markup = '<i class="genericon genericon-summary"></i>';
+				// $term_slug = current( $terms )->name;
+				// if ( $term_name == 'Map' ) {
+				// 	$icon_markup = '<i class="genericon genericon-website"></i>';
+				// } elseif ( $term_name == 'Report' ) {
+				// 	$icon_markup = '<i class="genericon genericon-summary"></i>';
+				// }
+				// Add the icons to the list in this case.
+				switch ( current( $terms )->slug ) {
+					case 'map':
+						$icon_markup = '<span class="mapx24 icon"></span>';
+						break;
+					case 'report':
+						$icon_markup = '<span class="reportx24 icon"></span>';
+						break;
+					default:
+						$icon_markup = ' <span class="collaborationx24 icon"></span>';
+						break;
 				}
 			}
 		}
@@ -1060,6 +1023,7 @@ class CC_MRAD_Public {
 	 *
 	 * @since 1.0.0
 	 *
+  	 * @param string $button Create doc button markup.
 	 * @return array $button Markup for the create button
 	 */
 	public function filter_bp_docs_create_button( $button ) {
@@ -1087,28 +1051,6 @@ class CC_MRAD_Public {
 		</div>
 		<?php
 		return ob_get_clean();
-
-		// return $button;
-	}
-
-	/**
-	 * Filter the location of the docs header template.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return string Location of the template to use.
-	 */
-	public function filter_bp_docs_header_template( $template ) {
-		// $towrite = PHP_EOL . 'incoming_template' . print_r( $template, TRUE );
-		$template_directory = $this->get_template_directory();
-		$template = $template_directory . "docs/docs-header.php";
-
-		// $towrite .= PHP_EOL . 'filtered_template' . print_r( $template, TRUE );
-		// $fp = fopen('filter_bp_docs_header_template.txt', 'a');
-		// fwrite($fp, $towrite);
-		// fclose($fp);
-
-		return $template;
 	}
 
 	/**
@@ -1116,6 +1058,7 @@ class CC_MRAD_Public {
 	 *
 	 * @since 1.0.0
 	 *
+ 	 * @param string $link Edit link for the doc.
 	 * @return string Edit link for the type of doc that it is.
 	 */
 	public function filter_bp_docs_get_doc_edit_link( $link ) {
@@ -1148,13 +1091,6 @@ class CC_MRAD_Public {
 				break;
 		}
 
-		$towrite = PHP_EOL . 'doc id' . print_r( $doc_id, TRUE );
-		$towrite .= PHP_EOL . 'filtered edit link' . print_r( $link, TRUE );
-		// $towrite .= PHP_EOL . 'terms' . print_r( $terms, TRUE );
-		$fp = fopen('filter_bp_docs_get_doc_edit_link.txt', 'a');
-		fwrite($fp, $towrite);
-		fclose($fp);
-
 		return $link;
 	}
 
@@ -1162,6 +1098,10 @@ class CC_MRAD_Public {
 	 * Shows a doc's channels on the single doc view.
 	 *
 	 * @since 1.0.0
+	 *
+ 	 * @param string $html Calculated markup for tag links.
+	 * @param string $tag_array Tags for the doc.
+ 	 * @return string html markup
 	 */
 	function add_channels_single_doc( $html, $tag_array ) {
 		$categories = wp_get_post_terms( get_the_ID(), 'category' );
@@ -1188,6 +1128,8 @@ class CC_MRAD_Public {
 	 * Shows a doc's channels on the docs table view.
 	 *
 	 * @since 1.0.0
+	 *
+ 	 * @return string html markup
 	 */
 	function add_channels_docs_loop() {
 		$categories = wp_get_post_terms( get_the_ID(), 'category' );
@@ -1210,6 +1152,10 @@ class CC_MRAD_Public {
 	 * Shows a doc's channels on the docs table view.
 	 *
 	 * @since 1.0.0
+	 *
+	 * @param string $html Calculated markup for tag links.
+	 * @param string $tag_array Tags for the doc.
+	 * @return string html markup
 	 */
 	function change_tags_output( $html, $tag_array ) {
 
@@ -1218,7 +1164,6 @@ class CC_MRAD_Public {
 			$html = '<div class="entry-meta"><span class="tag-links">'. $tags_list . '</span></div>';
 		}
 
-		// return '<div class="entry-meta">' . $output . '</div>';
 		return $html;
 	}
 
@@ -1226,6 +1171,10 @@ class CC_MRAD_Public {
 	 * Markup for the Channels meta box on the docs edit screen
 	 *
 	 * @since 1.0.0
+	 *
+	 * @param int ID of the doc
+	 *
+	 * @return string html markup
 	 */
 	public function docs_edit_channels_metabox( $doc_id ) {
 		// require_once(ABSPATH . '/wp-admin/includes/template.php');
@@ -1279,6 +1228,7 @@ class CC_MRAD_Public {
 	 *
 	 * @since 1.0.0
 	 *
+	 * @param $query Docs_Query instance.
 	 */
 	public function save_channel_selection( $query ) {
 		// Separate out the terms
@@ -1288,12 +1238,6 @@ class CC_MRAD_Public {
 			wp_set_post_terms( $query->doc_id, $terms, 'category' );
 		}
 
-		$towrite = PHP_EOL . '$query: ' . print_r( $query, TRUE );
-		$towrite .= PHP_EOL . '$_POST[post_category]: ' . print_r( $_POST['post_category'], TRUE );
-		$towrite .= PHP_EOL . '$terms: ' . print_r( $terms, TRUE );
-		$fp = fopen('save-doc-channels.txt', 'a');
-		fwrite($fp, $towrite);
-		fclose($fp);
 	}
 
 	/**
@@ -1304,6 +1248,7 @@ class CC_MRAD_Public {
 	 *
 	 * @since 1.0.0
 	 *
+	 * @param $query Docs_Query instance.
 	 */
 	public function save_doc_type( $query ) {
 
@@ -1311,38 +1256,14 @@ class CC_MRAD_Public {
 
 	}
 
-	public function filter_found_template( $template_path, $that ){
-		$towrite = PHP_EOL . 'in filter_found_template.';
-		$towrite .= PHP_EOL . '$template_path: ' . print_r( $template_path, TRUE );
-		$towrite .= PHP_EOL . '$that: ' . print_r( $that, TRUE );
-		$fp = fopen('filter_found_template.txt', 'a');
-		fwrite($fp, $towrite);
-		fclose($fp);
-
-		return $template_path;
-	}
-
-	public function filter_bp_docs_locate_template( $template_path, $template ) {
-		$towrite = PHP_EOL . 'in filter_bp_docs_locate_template.';
-		$towrite .= PHP_EOL . '$template_path: ' . print_r( $template_path, TRUE );
-		$towrite .= PHP_EOL . '$that: ' . print_r( $that, TRUE );
-		$fp = fopen('filter_found_template.txt', 'a');
-		fwrite($fp, $towrite);
-		fclose($fp);
-
-		return $template_path;
-	}
-
-	public function filter_bp_docs_template_include( $template ) {
-		$towrite = PHP_EOL . 'in filter_bp_docs_template_include.';
-		$towrite .= PHP_EOL . '$template: ' . print_r( $template, TRUE );
-		$fp = fopen('filter_found_template.txt', 'a');
-		fwrite($fp, $towrite);
-		fclose($fp);
-
-		return $template;
-	}
-
+	/**
+	 * If type is a map or report, we show the map or report with the description below.
+	 * Add a target div for the map to be built in.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string The filtered content string.
+	 */
 	public function filter_bp_docs_get_the_content( $content ) {
 		$doc = get_queried_object();
 
@@ -1401,12 +1322,18 @@ class CC_MRAD_Public {
 		return $content;
 	}
 
+	/**
+	 * Create the map target url and add it to the page as a js variable for use by other js.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string <script> block containing the needed js var.
+	 */
 	public function add_map_widget_injector() {
 		$doc_id = get_the_ID();
 		$output = '';
 
 		if ( ! empty( $doc_id ) ) {
-			// $mrad_class = CC_MRAD::get_instance();
 			$terms = wp_get_object_terms( $doc_id, $this->type_taxonomy_name );
 			$item_type = '';
 			$meta_query_key = '';
@@ -1415,7 +1342,6 @@ class CC_MRAD_Public {
 				$item_type = current( $terms )->slug;
 				switch ( $item_type ) {
 					case 'map':
-						// $meta_query_key = 'map_table_ID';
 						$item_id = get_post_meta( $doc_id, 'map_table_ID', true );
 						break;
 					case 'report':
@@ -1441,6 +1367,14 @@ class CC_MRAD_Public {
 		}
 	}
 
+	/**
+	 * Insert maps and reports on channel pages.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param int $category_id ID of the category term of the displayed archive.
+	 * @param int $category_name Name of the category term of the displayed archive.
+	 */
 	public function add_featured_map_to_channel_page( $category_id, $category_name ) {
 		$properties = $this->get_channel_block_properties( $category_id, $category_name );
 
@@ -1474,6 +1408,14 @@ class CC_MRAD_Public {
 		endif;
 	}
 
+	/**
+	 * Insert maps and reports on channel pages.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param int $category_id ID of the category term of the displayed archive.
+	 * @param int $category_name Name of the category term of the displayed archive.
+	 */
 	function add_featured_report_to_channel_page( $category_id, $category_name ) {
 		$properties = $this->get_channel_block_properties( $category_id, $category_name );
 		?>
@@ -1493,7 +1435,10 @@ class CC_MRAD_Public {
 	/**
 	 * Helper function to determine widget characteristics based on category.
 	 *
-	 * @since    0.9
+	 * @since 1.0.0
+	 *
+	 * @param int $category_id ID of the category term of the displayed archive.
+	 * @param int $category_name Name of the category term of the displayed archive.
 	 */
 	function get_channel_block_properties( $category_id, $category_name ) {
 		$retval = array();
@@ -1604,45 +1549,13 @@ class CC_MRAD_Public {
 	}
 
 	/**
-	 * We use a subset of the complete list of categories for maps
-	 * This function excludes the unnecessary options.
+	 * Helper function to get the right image for the reports block, based on category.
 	 *
-	 * @since    0.9
-	 */
-	function get_possible_map_categories() {
-		// 1 is "uncategorized", 57528 is "guest voice"
-		$exclude_cats = '1,57528';
-	    $args = array(
-				'hide_empty'	=> 0,
-				'exclude'		=> $exclude_cats,
-				);
-		return get_categories( $args );
-	}
-
-	/**
-	 * Add a way to get the possible map categories via JSON.
+	 * @since 1.0.0
 	 *
-	 * @since    0.9
+	 * @param int $category_id ID of the category term of the displayed archive.
+	 * @return string URL of associated image.
 	 */
-	public function json_get_map_categories(){
-		$categories = $this->get_possible_map_categories();
-		$retval = array();
-		foreach ( $categories as $cat ) {
-			$retval[] = array(
-				'name'		=> $cat->name,
-				'slug'		=> $cat->slug,
-				'term_id' 	=> (int) $cat->term_id,
-				);
-		}
-
-		// Send response
-		header("content-type: text/javascript; charset=utf-8");
-	    header("Access-Control-Allow-Origin: *");
-		echo htmlspecialchars($_GET['callback']) . '(' . json_encode( $retval ) . ')';
-
-	    exit;
-	}
-
 	public function get_report_block_header_image_url( $category_id ) {
 		switch ( $category_id ) {
 			case '888': // Economy
@@ -1669,6 +1582,50 @@ class CC_MRAD_Public {
 			}
 
 		return plugin_dir_url( __FILE__ ) . 'img/' . $filename;
+	}
+
+	/**
+	 * We use a subset of the complete list of categories for maps
+	 * This function excludes the unnecessary options.
+	 *
+	 * @since    1.0.0
+	 *
+	 * @return array of category objects
+	 */
+	function get_possible_map_categories() {
+		// 1 is "uncategorized", 57528 is "guest voice"
+		$exclude_cats = '1,57528';
+	    $args = array(
+				'hide_empty'	=> 0,
+				'exclude'		=> $exclude_cats,
+				);
+		return get_categories( $args );
+	}
+
+	/**
+	 * Add a way to get the possible map categories via JSON.
+	 *
+	 * @since    1.0.0
+	 *
+	 * @return JSON response containing info about site categories.
+	 */
+	public function json_get_map_categories(){
+		$categories = $this->get_possible_map_categories();
+		$retval = array();
+		foreach ( $categories as $cat ) {
+			$retval[] = array(
+				'name'		=> $cat->name,
+				'slug'		=> $cat->slug,
+				'term_id' 	=> (int) $cat->term_id,
+				);
+		}
+
+		// Send response
+		header("content-type: text/javascript; charset=utf-8");
+	    header("Access-Control-Allow-Origin: *");
+		echo htmlspecialchars($_GET['callback']) . '(' . json_encode( $retval ) . ')';
+
+	    exit;
 	}
 
 } // End class
