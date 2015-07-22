@@ -302,6 +302,9 @@ class CC_MRAD {
 		// Modify the displayed genericon when the doc is a map or report.
 		add_filter( 'bp_docs_get_genericon', array( $plugin_public, 'filter_bp_docs_get_genericon' ), 10, 3 );
 
+		// For the short term, use the table view of docs.
+		add_filter( 'bp_docs_use_legacy_directory_template', array( $this, 'use_table_layout' ) );
+
 	}
 
 	/**
@@ -375,6 +378,16 @@ class CC_MRAD {
 	public function get_taxonomy_term_id_report() {
 		$term = get_term_by( 'slug', 'report', $this->get_taxonomy_name() );
 		return (int) $term->term_id;
+	}
+
+	/**
+	 * BP Docs is moving to a non-table layout. It's not quite ready yet...
+	 *
+	 * @since     1.0.0
+	 * @return    int    The term ID.
+	 */
+	public function use_table_layout() {
+		return true;
 	}
 
 }

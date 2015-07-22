@@ -13,7 +13,7 @@
  * @package           CC_BuddyPress_Docs_Maps_Reports_Extension
  *
  * @wordpress-plugin
- * Plugin Name:       CC BuddyPress Docs Maps & Reports Extension
+ * Plugin Name:       CC Maps & Reports as BuddyPress Docs
  * Plugin URI:        http://example.com/plugin-name-uri/
  * Description:       Stores saved maps and reports as BuddyPress Docs.
  * Version:           1.0.0

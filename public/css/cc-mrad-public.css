@@ -118,6 +118,16 @@
     background-color: #008EAA;
     border-color: #008EAA;
 }
+.doctable .icon {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 0.3em;
+}
+
+/* Override the tendency of the title to bump down en masse. */
+.site-content #buddypress table.doctable .title-cell a {
+    display: inline;
+}
 
 /*Control the breadcrumb display*/
 .bp-docs.buddypress .site-content .directory-title {
