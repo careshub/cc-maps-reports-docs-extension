@@ -1257,6 +1257,79 @@ class CC_MRAD_Public {
 	}
 
 	/**
+	 * Add type- and channel-related filters to the list of current directory filters.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array $filters
+	 * @return array
+	 */
+	function add_tax_filters( $filters ) {
+		// Are we filtering by type?
+		if ( ! empty( $_REQUEST['bpd_type'] ) ) {
+			// The bpd_type argument may be comma-separated
+			$types = explode( ',', urldecode( $_REQUEST['bpd_type'] ) );
+
+			foreach ( $types as $type ) {
+				$filters['types'][] = $type;
+			}
+		}
+
+		// Are we filtering by channel?
+		if ( ! empty( $_REQUEST['bpd_channel'] ) ) {
+			// The bpd_channel argument may be comma-separated
+			$channels = explode( ',', urldecode( $_REQUEST['bpd_channel'] ) );
+
+			foreach ( $channels as $channel ) {
+				$filters['channels'][] = $channel;
+			}
+		}
+
+		return $filters;
+	}
+
+	/**
+	 * Modifies the info header message to account for current filters.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array $message An array of the messages explaining the current view
+	 * @param array $filters The filters pulled out of the $_REQUEST global
+	 *
+	 * @return array $message The maybe modified message array
+	 */
+	function info_header_message( $message, $filters ) {
+		// Check for the existence of our filters in the request URL.
+		if ( ! empty( $filters['types'] ) || ! empty( $filters['channels'] ) ){
+			$main_class = CC_MRAD::get_instance();
+		}
+
+		if ( ! empty( $filters['types'] ) ) {
+			$tagtext = array();
+
+			foreach ( $filters['types'] as $type ) {
+				$term = get_term_by( 'slug', $type, $main_class->get_taxonomy_name() );
+				$tagtext[] = $this->get_taxonomy_filter_link( 'bpd_type', $term );
+			}
+
+			$message[] = sprintf( __( 'You are viewing items with the type: %s', 'bp-docs' ), implode( ', ', $tagtext ) );
+		}
+
+		if ( ! empty( $filters['channels'] ) ) {
+			$tagtext = array();
+
+			foreach ( $filters['channels'] as $channel ) {
+				$term = get_term_by( 'slug', $channel, 'category' );
+				$tagtext[] = $this->get_taxonomy_filter_link( 'bpd_channel', $term );
+			}
+
+			$message[] = sprintf( __( 'You are viewing items in the channel: %s', 'bp-docs' ), implode( ', ', $tagtext ) );
+		}
+
+		return $message;
+	}
+
+	/**
 	 * Prefix the title with the doc type if it's not a regular doc.
 	 *
 	 * @since 1.0.0

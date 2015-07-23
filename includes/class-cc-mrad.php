@@ -262,6 +262,11 @@ class CC_MRAD {
 		add_filter( 'bp_docs_filter_types', array( $plugin_public, 'add_filter_toggle' ) );
 		add_filter( 'bp_docs_filter_sections', array( $plugin_public, 'filter_markup' ) );
 
+		// Add "type" and "channel" to the current filters when viewing the docs directory.
+		add_filter( 'bp_docs_get_current_filters', array( $plugin_public, 'add_tax_filters' ) );
+		// Add some header info when a filter is selected
+		add_filter( 'bp_docs_info_header_message', array( $plugin_public, 'info_header_message' ), 11, 2 );
+		// Modify the main tax_query in the doc loop
 		add_filter( 'bp_docs_tax_query', array( $plugin_public, 'types_query_filter' ), 10, 2 );
 
 		// Prefix the title with "map" or "report" if applicable.
