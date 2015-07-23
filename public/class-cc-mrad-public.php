@@ -1119,7 +1119,7 @@ class CC_MRAD_Public {
 	public function filter_markup() {
 		$main_class = CC_MRAD::get_instance();
 		$channel_filter = ! empty( $_GET['bpd_channel'] );
-		$categories = get_terms( 'category' );
+		$categories = get_terms( 'category', array( 'exclude' => array( 1 ) ) );
 
 		$type_filter = ! empty( $_GET['bpd_type'] );
 		$existing_types = get_terms( $main_class->get_taxonomy_name() );
