@@ -1382,9 +1382,12 @@ class CC_MRAD_Public {
 	 * @param $post_id The post's ID.
 	 * @return array $terms The item's terms
 	 */
-	public function add_doc_type_to_title( $title, $post_id ) {
+	public function add_doc_type_to_title( $title, $post_id = 0 ) {
+		if ( empty( $post_id ) ) {
+			$post_id = get_the_ID();
+		}
 
-		if ( bp_docs_get_post_type_name() == get_post_type( $post_id ) ) {
+		if ( ! empty( $post_id ) && bp_docs_get_post_type_name() == get_post_type( $post_id ) ) {
 			$main_class = CC_MRAD::get_instance();
 			$taxonomy = $main_class->get_taxonomy_name();
 			$terms = wp_get_post_terms( $post_id, $taxonomy );
