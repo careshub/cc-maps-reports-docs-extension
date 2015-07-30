@@ -1118,12 +1118,19 @@ class CC_MRAD_Public {
 	 */
 	public function filter_markup() {
 		$main_class = CC_MRAD::get_instance();
-		$channel_filter = ! empty( $_GET['bpd_channel'] );
-		$categories = get_terms( 'category', array( 'exclude' => array( 1 ) ) );
+		$active_filters = $this->get_active_filters();
 
-		$type_filter = ! empty( $_GET['bpd_type'] );
+		$channel_filter = in_array( 'channel', $active_filters);
+		$type_filter = in_array( 'types', $active_filters);
+
+		$categories = get_terms( 'category', array( 'exclude' => array( 1 ) ) );
 		$existing_types = get_terms( $main_class->get_taxonomy_name() );
 
+		// We show the type drawer if a type has been selected or if no filter is chosen
+		$show_type_drawer = false;
+		if ( $type_filter || empty( $active_filters ) ) {
+			$show_type_drawer = true;
+		}
 
 		?>
 		<div id="docs-filter-section-channels" class="docs-filter-section<?php if ( $channel_filter ) : ?> docs-filter-section-open<?php endif; ?>">
@@ -1140,7 +1147,7 @@ class CC_MRAD_Public {
 			</ul>
 		</div>
 
-		<div id="docs-filter-section-types" class="docs-filter-section<?php if ( $type_filter ) : ?> docs-filter-section-open<?php endif; ?>">
+		<div id="docs-filter-section-types" class="docs-filter-section<?php if ( $show_type_drawer ) : ?> docs-filter-section-open<?php endif; ?>">
 			<ul id="types-list" class="no-bullets horizontal mrad-types-filter-list">
 			<?php if ( ! empty( $existing_types ) ) : ?>
 				<?php foreach ( $existing_types as $term ) : ?>
@@ -1155,6 +1162,43 @@ class CC_MRAD_Public {
 		</div>
 
 		<?php
+	}
+
+	/**
+	 * Creates the markup for the doc types filter links on the docs loop.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string html for filter controls.
+	 */
+	public function filter_title_class( $current, $filter_type ) {
+		$active_filters = $this->get_active_filters();
+
+		if ( empty( $active_filters ) && $filter_type['slug'] == 'types' ) {
+			$current = ' current';
+		}
+
+		return $current;
+	}
+
+	/**
+	 * Creates the markup for the doc types filter links on the docs loop.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array of the slug for currently active filters.
+	 */
+	public function get_active_filters() {
+		$filter_types = apply_filters( 'bp_docs_filter_types', array() );
+		$active_filters = array();
+
+		foreach ( $filter_types as $filter ) {
+			if ( isset( $_GET[ $filter['query_arg'] ] ) ) {
+				$active_filters[] = $filter['slug'];
+			}
+		}
+
+		return $active_filters;
 	}
 
 	/**

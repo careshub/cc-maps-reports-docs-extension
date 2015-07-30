@@ -262,6 +262,9 @@ class CC_MRAD {
 		add_filter( 'bp_docs_filter_types', array( $plugin_public, 'add_filter_toggle' ) );
 		add_filter( 'bp_docs_filter_sections', array( $plugin_public, 'filter_markup' ) );
 
+		// Set the "types" filter toggle to current if no filter is selected.
+		add_filter( 'bp_docs_filter_title_class', array( $plugin_public, 'filter_title_class' ), 10, 2 );
+
 		// Add "type" and "channel" to the current filters when viewing the docs directory.
 		add_filter( 'bp_docs_get_current_filters', array( $plugin_public, 'add_tax_filters' ) );
 		// Add some header info when a filter is selected
