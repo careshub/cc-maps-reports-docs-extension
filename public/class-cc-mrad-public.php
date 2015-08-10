@@ -379,6 +379,16 @@ class CC_MRAD_Public {
 				$meta_query_key = 'report_table_ID';
 				$action = 'delete';
 				break;
+		  case 'area_updated':
+		  		$item_type = 'area';
+				$meta_query_key = 'area_table_ID';
+				$action = 'update';
+				break;
+		  case 'area_deleted':
+				$item_type = 'area';
+				$meta_query_key = 'area_table_ID';
+				$action = 'delete';
+				break;
 		  default:
 				// This is an error condition.
 				// Set JSON response
@@ -546,6 +556,9 @@ class CC_MRAD_Public {
 					} elseif ( $item['itemtype'] == 'report' ) {
 						// $args['taxonomies'][$mrad_class->get_taxonomy_name()] = 'report';
 						$tax_result = wp_set_object_terms( $post_id, 'report', $this->type_taxonomy_name );
+					} elseif ( $item['itemtype'] == 'area' ) {
+						// $args['taxonomies'][$mrad_class->get_taxonomy_name()] = 'report';
+						$tax_result = wp_set_object_terms( $post_id, 'area', $this->type_taxonomy_name );
 					}
 
 					if ( ! empty( $item['tags'] ) ) {
@@ -716,6 +729,16 @@ class CC_MRAD_Public {
 				$meta_query_key = 'report_table_ID';
 				$action = 'delete';
 				break;
+		  case 'area_updated':
+		  		$item_type = 'area';
+				$meta_query_key = 'area_table_ID';
+				$action = 'update';
+				break;
+		  case 'area_deleted':
+				$item_type = 'area';
+				$meta_query_key = 'area_table_ID';
+				$action = 'delete';
+				break;
 		  default:
 				// This is an error condition.
 				$towrite = PHP_EOL . 'Unrecognized activity type.';
@@ -866,6 +889,9 @@ class CC_MRAD_Public {
 					} elseif ( $item['itemtype'] == 'report' ) {
 						// $args['taxonomies'][$mrad_class->get_taxonomy_name()] = 'report';
 						$tax_result = wp_set_object_terms( $post_id, 'report', $this->type_taxonomy_name );
+					} elseif ( $item['itemtype'] == 'area' ) {
+						// $args['taxonomies'][$mrad_class->get_taxonomy_name()] = 'report';
+						$tax_result = wp_set_object_terms( $post_id, 'area', $this->type_taxonomy_name );
 					}
 
 					if ( ! empty( $item['tags'] ) ) {
@@ -981,6 +1007,11 @@ class CC_MRAD_Public {
 					$really_delete = true;
 					$item_id = get_post_meta( $doc_id, 'report_table_ID', true );
 					break;
+				case 'area':
+					// First, get some details because we'll need to ping the maps/reports environment on delete
+					$really_delete = true;
+					$item_id = get_post_meta( $doc_id, 'area_table_ID', true );
+					break;
 				default:
 				    $towrite = PHP_EOL . 'did not try to delete ' . print_r( $doc_id, TRUE);
 				    $fp = fopen('json_update_maps_reports.txt', 'a');
@@ -1030,6 +1061,9 @@ class CC_MRAD_Public {
 					break;
 				case 'report':
 					$item_id = get_post_meta( $doc_id, 'report_table_ID', true );
+					break;
+				case 'area':
+					$item_id = get_post_meta( $doc_id, 'area_table_ID', true );
 					break;
 				default:
 					// Do nothing.
@@ -1429,6 +1463,10 @@ class CC_MRAD_Public {
 				case 'report':
 					$icon_markup = '<span class="reportx24 icon"></span>';
 					break;
+				case 'area':
+					// @TODO: add an icon
+					$icon_markup = '<span class="mapx24 icon"></span>';
+					break;
 				default:
 					$icon_markup = ' <span class="collaborationx24 icon"></span>';
 					break;
@@ -1464,6 +1502,11 @@ class CC_MRAD_Public {
 						<li class="menu-item">
 							<a href="<?php echo mrad_report_create_link_url(); ?>" title="Create a report"><span class="reportx24 icon"></span>Create a Report</a>
 						</li>
+						<?php /* ?>
+						<li class="menu-item">
+							<a href="<?php echo mrad_area_create_link_url(); ?>" title="Create an area"><span class="mapx24 icon"></span>Create an Area</a>
+						</li>
+						<?php */ ?>
 					</ul>
 				</div>
 			</li>
@@ -1505,6 +1548,9 @@ class CC_MRAD_Public {
 				break;
 			case 'report':
 				$link = mrad_report_open_link_url( $doc_id );
+				break;
+			case 'area':
+				$link = mrad_area_open_link_url( $doc_id );
 				break;
 			default:
 				// Do nothing.
@@ -1725,7 +1771,22 @@ class CC_MRAD_Public {
 							$content = $report_link . '<br /> ' . $content;
 
 						}
+					case 'area':
+						// We add a map widget container above the post content.
+						$widget = '<div id="map-widget-container" ></div>';
+						$content = $widget . '<br /> ' . $content;
 
+						// We'll need to fetch the item details to generate the "open report" link.
+						$item_id = get_post_meta( $doc->ID, 'area_table_ID', true );
+						$item = $this->get_single_map_report( $item_id, $item_type );
+
+						if ( ! empty( $item ) ) {
+							$button_text = __( 'Open Report Using This Area', $this->plugin_name );
+
+							$report_link = '<a href="' . $item['link'] . '" title="Link to area" class="button report-link"><span class="icon reportx24"></span>' . $button_text . '</a>';
+							$content = $report_link . '<br /> ' . $content;
+
+						}
 					default:
 						$meta_query_key = '';
 						break;
@@ -1763,24 +1824,27 @@ class CC_MRAD_Public {
 				switch ( $item_type ) {
 					case 'map':
 						$item_id = get_post_meta( $doc_id, 'map_table_ID', true );
+						// We add a map widget above the post content.
+						$output = '<script type="text/javascript">
+							var base_map_widget_src = "' . mrad_map_base_url() . 'jscripts/mapWidget.js?mapid='. $item_id . '&style=responsive";
+							</script>';
 						break;
 					case 'report':
 						$meta_query_key = 'report_table_ID';
+						break;
+					case 'area':
+						$item_id = get_post_meta( $doc_id, 'area_table_ID', true );
+						$area = $this->get_single_map_report( $item_id, 'area' );
+						// We add a map widget above the post content.
+						$output = '<script type="text/javascript">
+							var base_map_widget_src = "' . $area['mapthumb'] .  '";
+							</script>';
+						break;
 					default:
 						$meta_query_key = '';
 						break;
 				}
 			}
-
-			if ( 'map' == $item_type ) {
-				// We add a map widget above the post content.
-				$output = '<script type="text/javascript">
-				var base_map_widget_src = "' . mrad_map_base_url() . 'jscripts/mapWidget.js?mapid='. $item_id . '&style=responsive";
-				</script>';
-			} elseif ( 'report' == $item_type ) {
-				# code...
-			}
-
 		}
 		if ( ! empty( $output ) ) {
 			echo $output;

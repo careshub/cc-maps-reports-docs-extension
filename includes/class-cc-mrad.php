@@ -389,6 +389,17 @@ class CC_MRAD {
 	}
 
 	/**
+	 * Retrieve the taxonomy term for "map" in our new taxonomy.
+	 *
+	 * @since     1.1.0
+	 * @return    int    The term ID.
+	 */
+	public function get_taxonomy_term_id_area() {
+		$term = get_term_by( 'slug', 'area', $this->get_taxonomy_name() );
+		return (int) $term->term_id;
+	}
+
+	/**
 	 * BP Docs is moving to a non-table layout. It's not quite ready yet...
 	 *
 	 * @since     1.0.0
