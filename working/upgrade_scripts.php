@@ -18,3 +18,13 @@ function mrad_apply_doc_type( $doc_id ) {
 	}
 
 }
+
+// example of importing objects:
+$areas = array(
+	array( 'id' => 1234, 'user_id' => '2' ),
+	);
+$mrad_public = new CC_MRAD_Public( 'cc-mrad', '1.0.0' );
+foreach ( $areas as $item ) {
+	echo PHP_EOL . "Updating item id: " . $item['id'];
+	$mrad_public->php_update_maps_reports( $item['user_id'], 'area_updated', $item['id'] );
+}
