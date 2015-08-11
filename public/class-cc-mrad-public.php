@@ -1663,7 +1663,12 @@ class CC_MRAD_Public {
 								<?php
 								//wp_category_checklist( $doc_id );
 								$categories = get_terms( 'category' );
-								$selected_cats = wp_list_pluck( get_the_terms( $doc_id, 'category' ), 'term_id' );
+								$selected_cats = get_the_terms( $doc_id, 'category' );
+								if ( ! empty( $selected_cats ) ) {
+									$selected_cats = wp_list_pluck( $selected_cats, 'term_id' );
+								} else {
+									$selected_cats = array();
+								}
 								// var_dump( $selected_cats );
 								if ( ! empty( $categories ) ) :
 								?>
