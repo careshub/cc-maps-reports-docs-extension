@@ -870,7 +870,10 @@ class CC_MRAD_Public {
 
 				// Save!
 				$instance = new CC_MRAD_BP_Doc_Save;
+				// Don't create activity items for imported stuff.
+				remove_action( 'bp_docs_doc_saved', 'bp_docs_post_activity' );
 				$post_id = $instance->save( $args );
+				add_action( 'bp_docs_doc_saved', 'bp_docs_post_activity' );
 
 				$towrite = PHP_EOL . 'post id ' . print_r( $post_id, TRUE );
 				$fp = fopen('php_update_maps_reports.txt', 'a');
