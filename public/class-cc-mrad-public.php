@@ -1564,6 +1564,36 @@ class CC_MRAD_Public {
 	}
 
 	/**
+	 * Because some of our doc objects like maps and reports don't have a uniform
+	 * way to be deleted, we add a delete action link to the directory view.
+	 *
+	 * @since 1.1.0
+	 * @param array $links array of html for action links
+	 * @param int   $doc_id ID of doc that we're displaying.
+	 *
+	 * @return array $links array of html for action links
+	 */
+	public function filter_bp_docs_actions_add_delete_link( $links, $doc_id ) {
+		if ( current_user_can( 'bp_docs_manage', $doc_id ) ) {
+			$links[] = bp_docs_get_delete_doc_button( $doc_id );
+		}
+		return $links;
+	}
+
+	/**
+	 * Because some of our doc objects like maps and reports don't have a uniform
+	 * way to be deleted, we add a delete link to the "read" view as a tab.
+	 *
+	 * @since 1.1.0
+	 */
+	function add_doc_header_delete_tab() {
+		$doc_id = get_the_ID();
+		if ( current_user_can( 'bp_docs_manage', $doc_id ) ) {
+			echo '<li>' . bp_docs_get_delete_doc_button( $doc_id ) . '</li>';
+		}
+	}
+
+	/**
 	 * Shows a doc's channels on the single doc view.
 	 *
 	 * @since 1.0.0

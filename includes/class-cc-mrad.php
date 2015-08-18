@@ -243,11 +243,8 @@ class CC_MRAD {
 		add_action( 'wp_ajax_cc-update-maps-reports', array( $plugin_public, 'json_update_maps_reports' ) );
 
 		// Maps and reports don't have a "trash" analog, so when one is deleted, we really delete it here, too.
+		// If the delete is initiated from the WP end, this function will also send a delete request to the map DB.
 		add_action( 'bp_docs_doc_deleted', array( $plugin_public, 'permanently_delete_maps_reports') );
-
-		// When a doc is deleted, if it's a map or report, we have to ping the map/report environment, too.
-		// We're not deleting items here. Deletes should happen on map/report env.
-		// add_action( 'delete_post', array( $plugin_public, 'ping_map_env_on_doc_delete') );
 
 		// When a doc is removed from a group, ping the maps/reports environment
 		add_action( 'bp_docs_doc_unlinked_from_group', array( $plugin_public, 'ping_map_env_on_doc_unlink_from_group'), 10, 2 );
@@ -298,6 +295,11 @@ class CC_MRAD {
 		add_action( 'wp_enqueue_scripts', array( $plugin_public, 'enqueue_scripts') );
 
 		add_filter( 'bp_docs_get_doc_edit_link', array( $plugin_public, 'filter_bp_docs_get_doc_edit_link') );
+
+		// Add a "delete" action link on the doc diretory view.
+		add_filter( 'bp_docs_doc_action_links', array( $plugin_public, 'filter_bp_docs_actions_add_delete_link'), 10, 2 );
+		// Add a "delete" link on the "read" view of a doc.
+		add_action( 'bp_docs_header_tabs', array( $plugin_public, 'add_doc_header_delete_tab') );
 
 		// insert maps and reports on channel pages.
 		add_action( 'channel_page_after_featured_story', array( $plugin_public, 'add_featured_map_to_channel_page' ), 10, 2 );
