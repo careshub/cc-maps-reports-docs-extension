@@ -73,9 +73,12 @@ class CC_MRAD_Public {
 	 *
 	 * @since    1.0.0
 	 */
-	public function enqueue_styles() {
+	public function enqueue_public_scripts_styles() {
 
-		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/cc-mrad-public.css', array(), $this->version, 'all' );
+		if ( bp_docs_is_docs_component() ) {
+			wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/cc-mrad-public.css', array(), $this->version, 'all' );
+			wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/cc-mrad-public.js', array( 'jquery' ), $this->version, false );
+		}
 	}
 
 	/**
@@ -97,7 +100,7 @@ class CC_MRAD_Public {
 		 * class.
 		 */
 
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/cc-mrad-public.js', array( 'jquery' ), $this->version, false );
+		// wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/cc-mrad-public.js', array( 'jquery' ), $this->version, false );
 
 	}
 
@@ -1321,11 +1324,10 @@ class CC_MRAD_Public {
 		if ( $taxonomy_arg == 'bpd_type' ) {
 			// Add the icons to the list in this case.
 			switch ( $term->slug ) {
+				case 'area':
 				case 'map':
-					$html .= '<span class="mapx24 icon"></span>';
-					break;
 				case 'report':
-					$html .= '<span class="reportx24 icon"></span>';
+					$html .= '<span class="'. $term->slug . 'x24 icon"></span>';
 					break;
 				default:
 					$html .= ' <span class="collaborationx24 icon"></span>';
@@ -1460,15 +1462,10 @@ class CC_MRAD_Public {
 
 			// Add the icons.
 			switch ( $doc_type ) {
-				case 'map':
-					$icon_markup = '<span class="mapx24 icon"></span>';
-					break;
-				case 'report':
-					$icon_markup = '<span class="reportx24 icon"></span>';
-					break;
 				case 'area':
-					// @TODO: add an icon
-					$icon_markup = '<span class="mapx24 icon"></span>';
+				case 'map':
+				case 'report':
+					$icon_markup = '<span class="' . $doc_type . 'x24 icon"></span>';
 					break;
 				default:
 					$icon_markup = ' <span class="collaborationx24 icon"></span>';
@@ -1821,7 +1818,7 @@ class CC_MRAD_Public {
 						if ( ! empty( $item ) ) {
 							$button_text = __( 'Open Report Using This Area', $this->plugin_name );
 
-							$report_link = '<a href="' . $item['link'] . '" title="Link to area" class="button report-link"><span class="icon reportx24"></span>' . $button_text . '</a>';
+							$report_link = '<a href="' . $item['reportlink'] . '" title="Link to area" class="button report-link"><span class="icon reportx24"></span>' . $button_text . '</a>';
 							$content = $report_link . '<br /> ' . $content;
 
 						}

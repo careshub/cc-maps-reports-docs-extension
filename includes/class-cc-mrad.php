@@ -291,8 +291,8 @@ class CC_MRAD {
 		add_action( 'bp_docs_doc_saved', array( $plugin_public, 'save_doc_type' ) );
 
 		// @TODO: Scope these
-		add_action( 'wp_enqueue_scripts', array( $plugin_public, 'enqueue_styles') );
-		add_action( 'wp_enqueue_scripts', array( $plugin_public, 'enqueue_scripts') );
+		add_action( 'wp_enqueue_scripts', array( $plugin_public, 'enqueue_public_scripts_styles') );
+		// add_action( 'wp_enqueue_scripts', array( $plugin_public, 'enqueue_scripts') );
 
 		add_filter( 'bp_docs_get_doc_edit_link', array( $plugin_public, 'filter_bp_docs_get_doc_edit_link') );
 
