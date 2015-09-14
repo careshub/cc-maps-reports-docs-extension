@@ -30,8 +30,14 @@ function mrad_report_base_url() {
     return apply_filters( 'mrad_report_base_url', $base_url );
 }
 
-function mrad_report_create_link_url() {
-    return mrad_report_base_url() . 'CHNA/SelectArea.aspx?reporttype=libraryCHNA';
+function mrad_report_create_link_url( $append = '' ) {
+    $retval = mrad_report_base_url() . 'report/';
+
+    if ( ! empty( $append ) ) {
+        $retval = $retval . $append;
+    }
+
+    return $retval;
 }
 
 function mrad_report_open_link_url( $doc_id = 0 ) {
@@ -64,8 +70,14 @@ function mrad_map_base_url() {
     return apply_filters( 'mrad_map_base_url', $base_url );
 }
 
-function mrad_map_create_link_url() {
-    return mrad_map_base_url();
+function mrad_map_create_link_url( $append = '' ) {
+    $retval = mrad_map_base_url();
+
+    if ( ! empty( $append ) ) {
+        $retval = $retval . $append;
+    }
+
+    return $retval;
 }
 
 function mrad_map_open_link_url( $doc_id = 0 ) {

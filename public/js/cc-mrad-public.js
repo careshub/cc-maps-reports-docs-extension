@@ -14,28 +14,21 @@
 				script_src = '',
 				dimensions = '';
 
-			console.log( 'width is: ' + width );
-			console.log( 'height is: ' + height );
-
 			width = Math.round( width );
 
 			if ( width > 500 ) {
 				height = Math.round( width * 2 / 3 );
 			}
-			console.log( 'calculated height is: ' + height );
-
 			dimensions = '&w=' + width + '&h=' + height;
 
-			console.log( 'dimensions statement: ' + dimensions );
+			// Troubleshooting
+			// console.log( 'width is: ' + width );
+			// console.log( 'height is: ' + height );
+			// console.log( 'calculated height is: ' + height );
+			// console.log( 'dimensions statement: ' + dimensions );
 
-			// Fetch the script with the correct arguments
-			jQuery.getScript( base_map_widget_src + dimensions, function() {
-			});
-
-			// var s = document.createElement("script");
-			// s.type = "text/javascript";
-			// s.src = base_map_widget_src + dimensions;
-
+			// This is a hack. This widget should only be loaded at page load because it uses document.write().
+			// W're loading these widgets asynchronously, so we have to overload doc.write.
 			var widget_container = document.getElementById('map-widget-container');
 			if ( ! document._write ) {
 				document._write = document.write;
@@ -43,6 +36,18 @@
 			document.write = function (str) {
 				widget_container.innerHTML += str;
 			};
+
+			// Fetch the script with the correct arguments
+			jQuery.ajax({
+			      url: base_map_widget_src + dimensions,
+			      dataType: "script",
+			      cache: true,
+			      crossDomain: true
+			}).success(function( data, textStatus, jqxhr ) {
+				// console.log( data ); // Data returned
+				// console.log( textStatus ); // Success
+				// console.log( jqxhr.status );
+			});
 		}
 
 	 });

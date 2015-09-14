@@ -1485,6 +1485,17 @@ class CC_MRAD_Public {
 	 * @return array $button Markup for the create button
 	 */
 	public function filter_bp_docs_create_button( $button ) {
+		// On group docs views, we allow plugins to filter the create a report label.
+		// Also send the group_id as a GET parameter so that the report/map can be customized on the other end.
+		if ( $current_group_id = bp_get_current_group_id() ) {
+			$group_param = '?groupid=' . $current_group_id;
+			$create_map_label = apply_filters( 'group_maps_create_new_label', 'Create a Map', $current_group_id );
+			$create_report_label = apply_filters( 'group_reports_create_new_label', 'Create a Report', $current_group_id );
+		} else {
+			$group_param = '';
+			$create_map_label = 'Create a Map';
+			$create_report_label = 'Create a Report';
+		}
 		ob_start();
 		?>
 		<div id="bp-create-doc-button-menu" class="bp-create-doc-button-nav-container">
@@ -1497,10 +1508,10 @@ class CC_MRAD_Public {
 							<a href="<?php bp_docs_create_link(); ?>" title="Create a collaborative document"><span class="collaborationx24 icon"></span>Create a Collaborative Doc</a>
 						</li>
 						<li class="menu-item">
-							<a href="<?php echo mrad_map_create_link_url(); ?>" title="Create a map"><span class="mapx24 icon"></span>Create a Map</a>
+							<a href="<?php echo mrad_map_create_link_url( $group_param ); ?>" title="Create a map"><span class="mapx24 icon"></span><?php echo $create_map_label; ?></a>
 						</li>
 						<li class="menu-item">
-							<a href="<?php echo mrad_report_create_link_url(); ?>" title="Create a report"><span class="reportx24 icon"></span>Create a Report</a>
+							<a href="<?php echo mrad_report_create_link_url( $group_param ); ?>" title="Create a report"><span class="reportx24 icon"></span><?php echo $create_report_label; ?></a>
 						</li>
 						<?php /* ?>
 						<li class="menu-item">
