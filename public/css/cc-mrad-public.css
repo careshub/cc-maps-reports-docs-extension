@@ -56,13 +56,14 @@
 .doc-content .map-widget-data {
     display: none;
 }
-.doc-content .report-link {
+.doc-content .report-link, .doc-content .map-link {
     margin-bottom: 1.2em;
 }
-.doc-content .reportx24 {
+.doc-content .reportx24, .doc-content .mapx24 {
     display: inline-block;
     vertical-align: middle;
     margin-right: .4em;
+    margin-top: 0;
 }
 
 #subnav.item-list-tabs .bp-create-doc-button-nav-container ul {

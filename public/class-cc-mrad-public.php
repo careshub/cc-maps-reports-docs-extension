@@ -1789,12 +1789,14 @@ class CC_MRAD_Public {
 				$item_type = current( $terms )->slug;
 				switch ( $item_type ) {
 					case 'map':
-						// $meta_query_key = 'map_table_ID';
-						// $item_id = get_post_meta( $doc->ID, 'map_table_ID', true );
+						// We'll need to fetch the item details to generate the "open report" link.
+						$item_id = get_post_meta( $doc->ID, 'map_table_ID', true );
+						$item = $this->get_single_map_report( $item_id, $item_type );
 
 						// We add a map widget container above the post content.
+						$map_link = '<a href="' . $item['link'] . '&bbox=' . $item['mapbbox'] . '" title="Open interactive map" class="button map-link"><span class="icon mapx24"></span>Open Interactive Map</a>';
 						$widget = '<div id="map-widget-container" ></div>';
-						$content = $widget . '<br /> ' . $content;
+						$content = $map_link . $widget . '<br /> ' . $content;
 						break;
 					case 'report':
 						// $meta_query_key = 'report_table_ID';
