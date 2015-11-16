@@ -1978,29 +1978,60 @@ class CC_MRAD_Public {
 	 */
 	public function add_featured_map_to_channel_page( $category_id, $category_name ) {
 		$properties = $this->get_channel_block_properties( $category_id, $category_name );
-
 		$items = array();
-		if ( $properties['maps_use_keyword'] ) {
-			$items = $this->get_featured_items( 'map', 1, $properties['search_terms'] );
+
+		// We query based on the "mrad_featured" post_meta crossed with the taxonomy term we want.
+		// We only want public docs, so we specify that, and remove the docs query protection temporarily, since we know we're fetching only public items.
+		remove_action( 'pre_get_posts', 'bp_docs_general_access_protection', 28 );
+		$items = new WP_Query( array(
+			'post_type' => 'bp_doc',
+			'tax_query' => array(
+				'relation' => 'AND',
+				array(
+					'taxonomy' => 'bp_docs_type',
+					'field'    => 'slug',
+					'terms'    => array( 'map' ),
+				),
+				array(
+					'taxonomy' => 'bp_docs_access',
+					'field'    => 'slug',
+					'terms'    => array( bp_docs_get_access_term_anyone() ),
+				),
+				array(
+					'taxonomy' => 'category',
+					'field'    => 'term_id',
+					'terms'    => array( $category_id ),
+				),
+			),
+			'meta_key'   => 'mrad_featured',
+			'posts_per_page' => 1,
+			'paged'          => 1,
+			'cache_results'  => false,
+			'update_post_term_cache' => false,
+		) );
+		add_action( 'pre_get_posts', 'bp_docs_general_access_protection', 28 );
+
+		$item = '';
+		if ( ! empty( $items->posts ) ) {
+			$item = $items->posts[0];
+			// We can get some info from the post.
+			$author_link = bp_core_get_userlink( $item->post_author );
+			$map_title = apply_filters( 'the_title', $item->post_title );
+			$map_id = get_post_meta( $item->ID, 'map_table_ID', true );
+			// We need to send a json request to get a few pieces, though.
+			$json_item = $this->get_single_map_report( $map_id, 'map' );
 		}
 
-		if ( empty( $items ) ) {
-			// Fallback to most recent featured if no results
-			$items = $this->get_featured_items( 'map', 1 );
-		}
-
-		$item = ( $items ) ? $items[0] : array();
 		if ( ! empty( $item ) ) :
 			?>
 			<div class="half-block card flex">
 				<span class="corner-ribbon">
 					<span class="mapx24-white" style="display:block;"></span>
 				</span>
-				<a href="<?php echo $item['link'] ?>"></a>
-				<script src='http://maps.communitycommons.org/jscripts/mapWidget.js?mapid=<?php echo $item['id']; ?>&w=600&h=300&bbox=<?php echo $item['mapbbox']; ?>&style=responsive'></script>
+				<script src='http://maps.communitycommons.org/jscripts/mapWidget.js?mapid=<?php echo $map_id; ?>&w=600&h=300&bbox=<?php echo $json_item['mapbbox']; ?>&style=responsive'></script>
 				<div class="entry-content">
-					<h3 class="entry-title small"><a href="<?php echo $item['link'] ?>"><?php echo $item['title']; ?></a></h3>
-					<p class="meta"><em>Created by</em> <?php echo bp_core_get_userlink( $item['owner'] ); ?></p>
+					<h3 class="entry-title small"><a href="<?php echo $json_item['link'] ?>"><?php echo $map_title; ?></a></h3>
+					<p class="meta"><em>Created by</em> <?php echo $author_link; ?></p>
 
 					<a href="<?php echo $properties['more_maps_url']; ?>"><?php echo $properties['more_maps_label']; ?></a>
 				</div>
@@ -2070,77 +2101,44 @@ class CC_MRAD_Public {
 			case '888': // Economy
 				$retval['report_topic'] = 'ECON';
 				$retval['report_label'] = 'economic indicator report';
-				break;
-			case '891': // Food
-				$retval['report_topic'] = 'FOOD';
-				$retval['report_label'] = 'food environment report';
+				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?c=Economy';
+				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
 				break;
 			case '889': // Education
 				$retval['report_topic'] = 'EDU';
 				$retval['report_label'] = 'education indicator report';
+				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?c=Education';
+				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
+				break;
+			case '891': // Food
+				$retval['report_topic'] = 'FOOD';
+				$retval['report_label'] = 'food environment report';
+				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?c=Food';
+				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
 				break;
 			case '897': // Environment
 				$retval['report_topic'] = 'ENVIRO';
 				$retval['report_label'] = 'physical environment report';
-				break;
-			case '58624': // Equity
-				$retval['report_topic'] = 'HE';
-				$retval['report_label'] = 'health equity assessment report';
+				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?c=Environment';
+				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
 				break;
 			case '1308': // Health
 				$retval['report_topic'] = 'HEALTH';
 				$retval['report_label'] = 'health indicator report';
+				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?c=Health';
+				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
+				break;
+			case '58624': // Equity
+				$retval['report_topic'] = 'HE';
+				$retval['report_label'] = 'health equity assessment report';
+				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?c=Equity';
+				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
 				break;
 			case '1': // General
 			case '57528': // Guest Voice
 			default:
 				$retval['report_topic'] = 'COMM';
 				$retval['report_label'] = 'community context indicator report';
-				break;
-		}
-
-		// MAPS *****
-		switch ( $category_id ) {
-			case '888': // Economy
-				$retval['maps_use_keyword'] = true;
-				$retval['search_terms'] = urlencode( 'poverty,income,economic,economy,wages,housing,SNAP' );
-				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?search=' . $retval['search_terms'];
-				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
-				break;
-			case '889': // Education
-				$retval['maps_use_keyword'] = true;
-				$retval['search_terms'] = urlencode( 'school,education,children,attainment,reading,math,learning,kids,youth' );
-				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?search=' . $retval['search_terms'];
-				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
-				break;
-			case '1308': // Health
-				$retval['maps_use_keyword'] = true;
-				$retval['search_terms'] = urlencode( 'health,access,insurance,clinical_care,medical,behaviors,outcomes,rankings,facilities,walking,mental,tobacco,dental,disease' );
-				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?search=' . $retval['search_terms'];
-				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
-				break;
-			case '891': // Food
-				$retval['maps_use_keyword'] = true;
-				$retval['search_terms'] = urlencode('poverty,food,access,food_environment,facilities,food_desert,farm,school_lunch,school,marketing,agriculture' );
-				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?search=' . $retval['search_terms'];
-				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
-				break;
-			case '897': // Environment
-				$retval['maps_use_keyword'] = true;
-				$retval['search_terms'] = urlencode( 'physical environment,environment,built environment,environmental,natural environment,natural,climate,drought,water,soil' );
-				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?search=' . $retval['search_terms'];
-				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
-				break;
-			case '58624': // Equity
-				$retval['maps_use_keyword'] = true;
-				$retval['search_terms'] = urlencode( 'race,diversity,social justice,ethnicity,inequality,equity,equality,rural,housing' );
-				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?search=' . $retval['search_terms'];
-				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
-				break;
-			case '1': // General
-			case '57528': // Guest Voice
-			default:
-				$retval['maps_use_keyword'] = false;
 				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx';
 				$retval['more_maps_label'] = 'Browse maps.';
 				break;
