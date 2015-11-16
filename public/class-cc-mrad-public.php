@@ -372,6 +372,11 @@ class CC_MRAD_Public {
 				$meta_query_key = 'map_table_ID';
 				$action = 'delete';
 				break;
+		  case 'map_featured':
+				$item_type = 'map';
+				$meta_query_key = 'map_table_ID';
+				$action = 'featured_status_change';
+				break;
 		  case 'report_updated':
 		  		$item_type = 'report';
 				$meta_query_key = 'report_table_ID';
@@ -382,6 +387,11 @@ class CC_MRAD_Public {
 				$meta_query_key = 'report_table_ID';
 				$action = 'delete';
 				break;
+		  case 'report_featured':
+		  		$item_type = 'report';
+				$meta_query_key = 'report_table_ID';
+				$action = 'featured_status_change';
+				break;
 		  case 'area_updated':
 		  		$item_type = 'area';
 				$meta_query_key = 'area_table_ID';
@@ -391,6 +401,11 @@ class CC_MRAD_Public {
 				$item_type = 'area';
 				$meta_query_key = 'area_table_ID';
 				$action = 'delete';
+				break;
+		  case 'area_featured':
+		  		$item_type = 'area';
+				$meta_query_key = 'area_table_ID';
+				$action = 'featured_status_change';
 				break;
 		  default:
 				// This is an error condition.
@@ -664,6 +679,32 @@ class CC_MRAD_Public {
 			header("Access-Control-Allow-Origin: *");
 			echo htmlspecialchars( $_REQUEST['callback'] ) . '(' . json_encode( $response ) . ')';
 			exit;
+		}  elseif ( 'featured_status_change' == $action  ) {
+			// Make a JSON request to get the item details.
+			$item = $this->get_single_map_report( $item_id, $item_type );
+
+			if ( isset( $item['featured'] ) ) {
+				if ( $item['featured'] ) {
+					update_post_meta( $doc_id, 'mrad_featured', true );
+					$towrite .= PHP_EOL . 'setting featured meta.';
+				} else {
+					$is_featured = get_post_meta( $doc_id, 'mrad_featured', true );
+					if ( $is_featured ) {
+						delete_post_meta( $doc_id, 'mrad_featured' );
+						$towrite .= PHP_EOL . 'deleting featured meta.';
+					}
+				}
+				// Set JSON response
+				$response = array(
+					'message' => "Doc featured status updated successfully.",
+				);
+			}
+
+			// Send response
+			header("content-type: text/javascript; charset=utf-8");
+			header("Access-Control-Allow-Origin: *");
+			echo htmlspecialchars( $_REQUEST['callback'] ) . '(' . json_encode( $response ) . ')';
+			exit;
 		}
 	}
 
@@ -722,6 +763,11 @@ class CC_MRAD_Public {
 				$meta_query_key = 'map_table_ID';
 				$action = 'delete';
 				break;
+		  case 'map_featured':
+				$item_type = 'map';
+				$meta_query_key = 'map_table_ID';
+				$action = 'featured_status_change';
+				break;
 		  case 'report_updated':
 		  		$item_type = 'report';
 				$meta_query_key = 'report_table_ID';
@@ -732,6 +778,11 @@ class CC_MRAD_Public {
 				$meta_query_key = 'report_table_ID';
 				$action = 'delete';
 				break;
+		  case 'report_featured':
+		  		$item_type = 'report';
+				$meta_query_key = 'report_table_ID';
+				$action = 'featured_status_change';
+				break;
 		  case 'area_updated':
 		  		$item_type = 'area';
 				$meta_query_key = 'area_table_ID';
@@ -741,6 +792,11 @@ class CC_MRAD_Public {
 				$item_type = 'area';
 				$meta_query_key = 'area_table_ID';
 				$action = 'delete';
+				break;
+		  case 'area_featured':
+		  		$item_type = 'area';
+				$meta_query_key = 'area_table_ID';
+				$action = 'featured_status_change';
 				break;
 		  default:
 				// This is an error condition.
@@ -971,6 +1027,19 @@ class CC_MRAD_Public {
 			    $fp = fopen('php_update_maps_reports.txt', 'a');
 			    fwrite($fp, $towrite);
 			    fclose($fp);
+			}
+		} elseif ( 'featured_status_change' == $action  ) {
+			if ( isset( $item['featured'] ) ) {
+				if ( $item['featured'] ) {
+					update_post_meta( $doc_id, 'mrad_featured', true );
+					$towrite .= PHP_EOL . 'setting featured meta.';
+				} else {
+					$is_featured = get_post_meta( $doc_id, 'mrad_featured', true );
+					if ( $is_featured ) {
+						delete_post_meta( $doc_id, 'mrad_featured' );
+						$towrite .= PHP_EOL . 'deleting featured meta.';
+					}
+				}
 			}
 		}
 	}
