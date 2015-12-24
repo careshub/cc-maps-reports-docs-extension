@@ -1862,8 +1862,16 @@ class CC_MRAD_Public {
 						$item_id = get_post_meta( $doc->ID, 'map_table_ID', true );
 						$item = $this->get_single_map_report( $item_id, $item_type );
 
+						// If the group ID is appended to the URL, then a link to return to the group
+						// will appear over the map interface.
+						if (  $assoc_group_id = bp_docs_get_associated_group_id( $doc->ID ) ) {
+							$group_arg = '&groupid=' . $assoc_group_id;
+						} else {
+							$group_arg = '';
+						}
+
 						// We add a map widget container above the post content.
-						$map_link = '<a href="' . $item['link'] . '&bbox=' . $item['mapbbox'] . '" title="Open interactive map" class="button map-link"><span class="icon mapx24"></span>Open Interactive Map</a>';
+						$map_link = '<a href="' . $item['link'] . '&bbox=' . $item['mapbbox'] . $group_arg . '" title="Open interactive map" class="button map-link"><span class="icon mapx24"></span>Open Interactive Map</a>';
 						$widget = '<div id="map-widget-container" ></div>';
 						$content = $map_link . $widget . '<br /> ' . $content;
 						break;
