@@ -2106,12 +2106,6 @@ class CC_MRAD_Public {
 		// Health: HEALTH
 		// Physical Environment: ENVIRO
 		switch ( $category_id ) {
-			case '888': // Economy
-				$retval['report_topic'] = 'ECON';
-				$retval['report_label'] = 'economic indicator report';
-				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?c=Economy';
-				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
-				break;
 			case '889': // Education
 				$retval['report_topic'] = 'EDU';
 				$retval['report_label'] = 'education indicator report';
@@ -2140,6 +2134,12 @@ class CC_MRAD_Public {
 				$retval['report_topic'] = 'HE';
 				$retval['report_label'] = 'health equity assessment report';
 				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?c=Equity';
+				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
+				break;
+			case '67619': // Economy
+				$retval['report_topic'] = 'ECON';
+				$retval['report_label'] = 'economic indicator report';
+				$retval['more_maps_url'] = 'http://maps.communitycommons.org/gallery.aspx?c=Economy';
 				$retval['more_maps_label'] = 'Browse maps on ' . strtolower( $category_name ) . '.';
 				break;
 			case '1': // General
