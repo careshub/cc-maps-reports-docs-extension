@@ -49,6 +49,14 @@
     margin-right: .6em;
     padding: 0;
 }
+/* Undo some item-list-tab styling */
+.buddypress .item-list-tabs .bp-create-doc-button-nav-container ul li a span.icon {
+    background-color: inherit;
+    border-radius: 0;
+    font-size: 100%;
+    margin-left: 0;
+    padding: 0;
+}
 
 .doc-content .cc-map-widget img {
     margin: 0;
