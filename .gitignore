@@ -1,0 +1,7 @@
+#Translations
+*.mo
+
+# Mac crap
+.DS_Store
+
+node_modules/**
