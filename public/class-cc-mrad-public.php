@@ -1066,7 +1066,7 @@ class CC_MRAD_Public {
 		}
 
 		// $mrad_class = CC_MRAD::get_instance();
-		$terms = wp_get_object_terms( $doc_id, $this->type_taxonomy_name );
+		$terms = get_the_terms( $doc_id, $this->type_taxonomy_name );
 		$item_type = '';
 
 		if ( ! empty( $terms ) ) {
@@ -1125,7 +1125,7 @@ class CC_MRAD_Public {
 	 */
 	public function ping_map_env_on_doc_unlink_from_group( $doc_id, $group_id ) {
 		// $mrad_class = CC_MRAD::get_instance();
-		$terms = wp_get_object_terms( $doc_id, $this->type_taxonomy_name );
+		$terms = get_the_terms( $doc_id, $this->type_taxonomy_name );
 		$item_type = '';
 
 		if ( ! empty( $terms ) ) {
@@ -1498,7 +1498,7 @@ class CC_MRAD_Public {
 		if ( ! empty( $post_id ) && bp_docs_get_post_type_name() == get_post_type( $post_id ) ) {
 			$main_class = CC_MRAD::get_instance();
 			$taxonomy = $main_class->get_taxonomy_name();
-			$terms = wp_get_post_terms( $post_id, $taxonomy );
+			$terms = get_the_terms( $post_id, $taxonomy );
 
 			if ( ! empty( $terms ) ) {
 				$term_name = current( $terms )->name;
@@ -1526,7 +1526,7 @@ class CC_MRAD_Public {
 		if ( $glyph_name == 'document' ) {
 			// $main_class = CC_MRAD::get_instance();
 			// $taxonomy = $main_class->get_taxonomy_name();
-			$terms = wp_get_post_terms( $object_id, $this->type_taxonomy_name);
+			$terms = get_the_terms( $object_id, $this->type_taxonomy_name);
 			$doc_type = ! empty( $terms ) ? current( $terms )->slug : 'doc';
 
 			// Add the icons.
@@ -1850,7 +1850,7 @@ class CC_MRAD_Public {
 
 		if ( ! empty( $doc ) ) {
 			// $mrad_class = CC_MRAD::get_instance();
-			$terms = wp_get_object_terms( $doc->ID, $this->type_taxonomy_name );
+			$terms = get_the_terms( $doc->ID, $this->type_taxonomy_name );
 			$item_type = '';
 			$meta_query_key = '';
 
@@ -1940,7 +1940,7 @@ class CC_MRAD_Public {
 		$output = '';
 
 		if ( ! empty( $doc_id ) ) {
-			$terms = wp_get_object_terms( $doc_id, $this->type_taxonomy_name );
+			$terms = get_the_terms( $doc_id, $this->type_taxonomy_name );
 			$item_type = '';
 			$meta_query_key = '';
 
