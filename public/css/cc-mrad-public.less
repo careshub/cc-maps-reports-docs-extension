@@ -1,0 +1,328 @@
+/**
+ * All of the CSS for your public-facing functionality should be
+ * included in this file.
+ */
+ // Mixins
+@ccblue:#008EAA;
+@ccgreen:#869B3C;
+@ccyellow:#F7B718;
+@ccred:#DF5927;
+@white:#FFF;
+@driftwood:#827772;
+@graydark:#454545; //#666;
+@graymid:#AAA;//#DDD;
+@graylight:#DEDEDE;//#EAEAEA;
+@black:#211F1F;
+.font-size(@sizeValue){
+  @remValue: @sizeValue;
+  @pxValue: (@sizeValue * 14);
+  font-size: ~"@{pxValue}px";
+  font-size: ~"@{remValue}rem";
+}
+
+//BuddyPress Docs overrides
+.docs-info-header {
+	// background: none repeat scroll 0 0 #EAEAEA;
+	.currently-viewing {
+		// .font-size(.9);
+		.icon {
+			margin: 0 2px 0 4px;
+			vertical-align: middle;
+		}
+	}
+}
+#buddypress {
+	#bp-docs-all-docs {
+		li {
+			display: inline-block;
+			margin: 10px 10px 0 0;
+			background: none;
+			&.current{
+				a {
+				}
+			}
+			a {
+			}
+		}
+	}
+	#bp-create-doc-button {
+		margin-right: 0;
+		margin-bottom: 1em;
+		padding-top: 0.4em;
+		padding-bottom: 0.4em;
+		font-weight: normal;
+		.font-size(1);
+	}
+	.item-list-tabs {
+		#bp-create-doc-button {
+			margin-top: 0;
+		}
+	}
+	.bp-docs-attachment-drawer {
+		h4 {
+			font-weight: normal;
+		}
+		&>ul {
+			&>li {
+				margin-bottom: 0;
+			}
+		}
+	}
+	table.doctable {
+		border: 1px solid #EEEEEE;
+		tr {
+			&:nth-child(even) {
+				background-color: #fbfbfb;
+			}
+			th {
+			background-color: #EAEAEA;
+			.font-size(1);
+			font-weight: normal;
+				a {
+					text-decoration: none;
+				}
+			}
+		}
+		.title-cell {
+			width: 30%;
+			a {
+				display: inline-block;
+				.font-size(1);
+				line-height: 1.4;
+				margin-bottom: 0.5em;
+			}
+			.row-actions a {
+				.font-size(.9);
+				margin-bottom: 0;
+			}
+		}
+		.attachment-clip-cell {
+			width: 4%;
+		}
+		.author-cell, .created-date-cell, .edited-date-cell {
+			text-align: center;
+			width: 13%;
+		}
+
+		.groups-cell {
+			padding-left: 10px;
+			width: 13%;
+
+			ul {
+				list-style-type: none;
+				padding-left: 0;
+
+				li {
+					margin-bottom: .5em;
+					margin-left: 0;
+
+					a {
+						vertical-align: middle;
+						font-size: .85em;
+					}
+
+					img.avatar {
+						display: block;
+						// vertical-align: middle;
+					}
+				}
+			}
+		}
+	}
+}
+
+// Navigation lists
+.bp-create-doc-button-nav-container {
+	float: right;
+}
+
+#buddypress #bp-docs-all-docs .mrad_create_doc_options_list li {
+	margin: 0;
+	width: 100%;
+}
+.item-list-tabs #bp-docs-all-docs .bp-create-doc-button-nav-container ul {
+	border-bottom: 0;
+	padding-bottom: 0;
+}
+
+.bp-create-doc-button-nav-container .accessible-menu .sub-nav {
+	width: 17em;
+}
+
+
+.bp-create-doc-button-nav-container .accessible-menu .sub-nav:after,
+.bp-create-doc-button-nav-container .accessible-menu .sub-nav:before {
+	left: 55%;
+}
+#buddypress #bp-create-doc-button {
+	padding-right: 26px;
+}
+#subnav .bp-create-doc-button-nav-container .accessible-menu .sub-nav .sub-nav-group li {
+	width: 100%;
+	margin-right: 0;
+}
+#subnav .bp-create-doc-button-nav-container .accessible-menu .sub-nav .sub-nav-group a {
+	padding: 0 0.6em;
+	display: inline-block;
+	vertical-align: middle;
+	width: 93%;
+}
+.bp-create-doc-button-nav-container .sub-nav a {
+}
+.bp-create-doc-button-nav-container .icon {
+	display: inline-block;
+	vertical-align: middle;
+	background-color: #FFF;
+	border-radius: 0;
+	margin-right: .6em;
+	padding: 0;
+}
+
+/* Undo some item-list-tab styling */
+.buddypress .item-list-tabs .bp-create-doc-button-nav-container ul li a span.icon {
+	background-color: inherit;
+	border-radius: 0;
+	font-size: 100%;
+	margin-left: 0;
+	padding: 0;
+}
+
+.doc-content .cc-map-widget img {
+	margin: 0;
+}
+.doc-content .map-widget-data {
+	display: none;
+}
+.doc-content .report-link, .doc-content .map-link {
+	margin-bottom: 1.2em;
+}
+.doc-content .reportx24, .doc-content .mapx24 {
+	display: inline-block;
+	vertical-align: middle;
+	margin-right: .4em;
+	margin-top: 0;
+}
+
+#subnav.item-list-tabs .bp-create-doc-button-nav-container ul {
+	border-bottom: 0;
+}
+
+.docs-filter-section ul.no-bullets {
+	margin-bottom: 0;
+}
+.mrad-types-filter-list .icon {
+	display: inline-block;
+	vertical-align: middle;
+	margin-right: .8em;
+}
+
+.docs-filter-section .category-links a {
+	background-color: #2cbdda;
+	border-radius: 12px;
+	color: #fff;
+	display: inline-block;
+	font-size: 0.9rem;
+	line-height: 1.8;
+	margin-bottom: 0.6rem;
+	padding: 0 0.8em;
+	transition: all 0.3s ease 0s;
+}
+.docs-filter-section .category-links a:visited {
+	color: #fff;
+}
+.docs-filter-section .category-links a:hover {
+	background-color: #008eaa;
+	color: #fff;
+}
+
+/* Adjustments to the document table view*/
+.doctable footer.entry-meta {
+	margin-top: 0
+}
+.doctable .doc-excerpt p {
+	margin-bottom: .5em;
+}
+
+#buddypress table.doctable .title-cell footer.entry-meta .category-links a {
+	font-size: .9rem;
+	line-height: 1.8;
+	background-color: white;
+	border: 1px solid #ccc;
+	color: #008EAA;
+	transition: all .3s ease;
+}
+#buddypress table.doctable .title-cell footer.entry-meta .category-links a:hover {
+	color: white;
+	background-color: #008EAA;
+	border-color: #008EAA;
+}
+.doctable .icon {
+	display: inline-block;
+	vertical-align: middle;
+	margin-right: 0.3em;
+}
+
+/* Override the tendency of the title to bump down en masse. */
+.site-content #buddypress table.doctable .title-cell a {
+	display: inline;
+}
+
+/*Control the breadcrumb display*/
+.bp-docs.buddypress .site-content .directory-title {
+	font-size: 1rem;
+	margin-top: 0;
+}
+// Hide breadcrumb on main, site-wide directory
+.post-type-archive-bp_doc {
+	.directory-title {
+		display: none;
+	}
+}
+
+// Edit screens
+.type-bp_doc .doc-tabs {
+	ul {
+		li {
+			margin-bottom: 0;
+			margin-left: .4em;
+			padding-bottom: 0;
+			&:first-of-type {
+				margin-left: 0;
+			}
+			a {
+				float: none;
+				color: #008eaa;
+				margin-left: 0;
+			}
+		}
+	}
+}
+
+// Docs list styles
+.docs-list .doc-title {
+	margin: 0 0 0 -28px;
+}
+.doc-title .icon {
+	display: inline-block;
+	vertical-align: middle;
+	margin-right: 0.3em;
+}
+.docs-list .doc-excerpt p {
+	margin-bottom: .5em;
+}
+.docs-list footer.entry-meta {
+	margin-top: 0;
+}
+
+// Breadcrumbs in the user's library
+.list-item-breadcrumb {
+	.font-size(.8);
+	// padding: 2px;
+	// border: 1px solid @graylight;
+	// background-color: lighten( @graylight, 10% );
+}
+
+.ie7 .bp-create-doc-button-nav-container,
+.ie8 .bp-create-doc-button-nav-container {
+	float: right;
+}

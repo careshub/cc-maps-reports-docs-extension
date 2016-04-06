@@ -76,7 +76,7 @@ class CC_MRAD_Public {
 	public function enqueue_public_scripts_styles() {
 
 		if ( bp_docs_is_docs_component() ) {
-			wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/cc-mrad-public.css', array(), $this->version, 'all' );
+			wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/cc-mrad-public.css', array( 'bp-docs-css' ), $this->version, 'all' );
 			wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/cc-mrad-public.js', array( 'jquery' ), $this->version, false );
 		}
 	}
@@ -1229,7 +1229,7 @@ class CC_MRAD_Public {
 		$main_class = CC_MRAD::get_instance();
 		$active_filters = $this->get_active_filters();
 
-		$channel_filter = in_array( 'channel', $active_filters);
+		$channel_filter = in_array( 'channels', $active_filters);
 		$type_filter = in_array( 'types', $active_filters);
 
 		$categories = get_terms( 'category', array( 'exclude' => array( 1 ) ) );
@@ -1362,6 +1362,27 @@ class CC_MRAD_Public {
 		}
 
 		return $tax_query;
+	}
+
+	/**
+	 * Determine whether the directory view is filtered by type or category.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param bool  $is_filtered Is the current directory view filtered?
+	 * @param array $exclude Array of filter types to ignore.
+	 *
+	 * @return bool $is_filtered
+	 */
+	public function is_directory_view_filtered( $is_filtered, $exclude ) {
+		// If this filter is excluded, stop now.
+		if ( ! in_array( 'bpd_channel', $exclude ) && isset( $_GET['bpd_channel'] ) ) {
+			$is_filtered = true;
+		} elseif ( ! in_array( 'bpd_type', $exclude ) && isset( $_GET['bpd_type'] ) ) {
+			$is_filtered = true;
+		}
+
+	    return $is_filtered;
 	}
 
 	/**
@@ -1652,7 +1673,12 @@ class CC_MRAD_Public {
 	 */
 	public function filter_bp_docs_actions_add_delete_link( $links, $doc_id ) {
 		if ( current_user_can( 'bp_docs_manage', $doc_id ) ) {
-			$links[] = bp_docs_get_delete_doc_button( $doc_id );
+			$delete_buttons = bp_docs_get_delete_doc_button( $doc_id );
+			$delete_buttons = explode( '</a>', $delete_buttons );
+			$delete_buttons = array_filter( $delete_buttons, 'strlen' );
+			foreach ( $delete_buttons as $link ) {
+				$links[] = $link . '</a>';
+			}
 		}
 		return $links;
 	}
@@ -1666,7 +1692,12 @@ class CC_MRAD_Public {
 	function add_doc_header_delete_tab() {
 		$doc_id = get_the_ID();
 		if ( current_user_can( 'bp_docs_manage', $doc_id ) ) {
-			echo '<li>' . bp_docs_get_delete_doc_button( $doc_id ) . '</li>';
+			$delete_buttons = bp_docs_get_delete_doc_button( $doc_id );
+			$delete_buttons = explode( '</a>', $delete_buttons );
+			$delete_buttons = array_filter( $delete_buttons, 'strlen' );
+			foreach ( $delete_buttons as $link ) {
+				echo '<li>' . $link . '</a></li>';
+			}
 		}
 	}
 

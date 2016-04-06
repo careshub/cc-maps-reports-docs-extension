@@ -268,6 +268,8 @@ class CC_MRAD {
 		add_filter( 'bp_docs_info_header_message', array( $plugin_public, 'info_header_message' ), 11, 2 );
 		// Modify the main tax_query in the doc loop
 		add_filter( 'bp_docs_tax_query', array( $plugin_public, 'types_query_filter' ), 10, 2 );
+		// Determine whether the directory view is filtered by category.
+		add_filter( 'bp_docs_is_directory_view_filtered', array( $plugin_public, 'is_directory_view_filtered' ), 10, 2 );
 
 		// Prefix the title with "map" or "report" if applicable.
 		add_filter( 'the_title', array( $plugin_public, 'add_doc_type_to_title' ), 10, 2 );
@@ -314,6 +316,14 @@ class CC_MRAD {
 
 		// For the short term, use the table view of docs.
 		add_filter( 'bp_docs_use_legacy_directory_template', array( $this, 'use_table_layout' ) );
+
+		// For the short term (until we solve the Group Hierarchy problem), no folders.
+		add_filter( 'bp_docs_enable_folders', '__return_false' );
+		add_filter( 'bp_docs_enable_folders_for_current_context', '__return_false' );
+
+
+		// BP Group Hierarchy fails to act during AJAX requests. We have to shim it.
+		// add_filter( 'groups_get_current_group', array( $this, 'use_table_layout' ) );
 
 	}
 
