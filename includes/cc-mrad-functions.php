@@ -16,7 +16,7 @@
 /* URLs for reports **********************************************************/
 function mrad_report_base_url() {
     // We use the staging site for testing, use the real maps environment for production.
-    $location = get_site_url();
+    $location = get_site_url( null, '', 'http' );
     switch ( $location ) {
         case 'http://www.communitycommons.org':
             // Production value:
@@ -56,7 +56,7 @@ function mrad_report_open_link_url( $doc_id = 0 ) {
 /* URLs for maps *************************************************************/
 function mrad_map_base_url() {
     // We use the staging site for testing, use the real maps environment for production.
-    $location = get_site_url();
+    $location = get_site_url( null, '', 'http' );
     switch ( $location ) {
         case 'http://www.communitycommons.org':
             // Production value:
@@ -96,7 +96,7 @@ function mrad_map_open_link_url( $doc_id = 0 ) {
 /* URLs for areas ************************************************************/
 function mrad_area_base_url() {
     // We use the staging site for testing, use the real maps environment for production.
-    $location = get_site_url();
+    $location = get_site_url( null, '', 'http' );
     switch ( $location ) {
         case 'http://www.communitycommons.org':
             // Production value:

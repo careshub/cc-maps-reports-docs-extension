@@ -2067,7 +2067,7 @@ class CC_MRAD_Public {
 				<span class="corner-ribbon">
 					<span class="mapx24-white" style="display:block;"></span>
 				</span>
-				<script src='http://maps.communitycommons.org/jscripts/mapWidget.js?mapid=<?php echo $map_id; ?>&w=600&h=300&bbox=<?php echo $json_item['mapbbox']; ?>&style=responsive'></script>
+				<script src='//maps.communitycommons.org/jscripts/mapWidget.js?mapid=<?php echo $map_id; ?>&w=600&h=300&bbox=<?php echo $json_item['mapbbox']; ?>&style=responsive'></script>
 				<div class="entry-content">
 					<h3 class="entry-title small"><a href="<?php echo $json_item['link'] ?>"><?php echo $map_title; ?></a></h3>
 					<p class="meta"><em>Created by</em> <?php echo $author_link; ?></p>
