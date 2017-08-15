@@ -627,6 +627,9 @@ class CC_MRAD_Public {
 					fwrite($fp, $towrite);
 					fclose($fp);
 
+					// Fire off an action hook for other plugins to hook in.
+					do_action( 'mrad_after_update_maps_reports', $post_id );
+
 					// Set JSON response
 					$response = array(
 						'doc_id' => $post_id,
