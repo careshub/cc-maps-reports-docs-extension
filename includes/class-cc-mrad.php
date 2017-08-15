@@ -321,6 +321,8 @@ class CC_MRAD {
 		add_filter( 'bp_docs_enable_folders', '__return_false' );
 		add_filter( 'bp_docs_enable_folders_for_current_context', '__return_false' );
 
+		// Get the possible target groups for doc association. User must be logged in.
+		add_action( 'wp_ajax_cc-json-get-doc-associatable-groups', array( $plugin_public, 'json_get_doc_associatable_groups' ) );
 
 		// BP Group Hierarchy fails to act during AJAX requests. We have to shim it.
 		// add_filter( 'groups_get_current_group', array( $this, 'use_table_layout' ) );

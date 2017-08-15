@@ -2269,4 +2269,39 @@ class CC_MRAD_Public {
 	    exit;
 	}
 
+	/**
+	 * Get the possible target groups for doc association. User must be logged in.
+	 *
+	 * @since    1.8.0
+	 *
+	 * @return JSON response containing info about groups.
+	 */
+	public function json_get_doc_associatable_groups() {
+		$groups = groups_get_groups( array(
+			'per_page' => false,
+			'populate_extras' => false,
+			'type' => 'alphabetical',
+			'update_meta_cache' => false,
+			'user_id' => bp_loggedin_user_id() )
+		);
+		$retval = array();
+		foreach ( $groups['groups'] as $key => $group ) {
+			if ( current_user_can( 'bp_docs_associate_with_group', $group->id ) ) {
+				$retval[] = array(
+					'id'	=> $group->id,
+					'name'	=> $group->name,
+					'link' 	=> bp_get_group_permalink( $group ),
+				);
+			}
+		}
+
+		// Send response
+		header("content-type: text/javascript; charset=utf-8");
+	    header("Access-Control-Allow-Origin: *");
+		echo htmlspecialchars($_GET['callback']) . '(' . json_encode( $retval ) . ')';
+
+	    exit;
+
+	}
+
 } // End class
